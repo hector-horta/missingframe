@@ -1,32 +1,80 @@
-# React + TypeScript + Vite
+# Missing Frame
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Missing Frame is an elite cinematic reconstruction tool designed to help you recover movie memories from fragmented, imperfect synapses. Built with a stark, minimal A24-style aesthetic, it focuses on high typography contrast, spacious layouts, and immersive poster-driven results rather than generic chatbot boxes or search lists.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## The Reconstruction Flow
 
-## React Compiler
+1. **Step 1: The Synapse Console**
+   Input whatever details you remember about the movie (even if they are contradictory or incorrect). Suggestions appear under the void text area to inspire memory recovery.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. **Step 2: Clue Refinement**
+   Review the status of AI-extracted memory chips. Toggle status indicators between Confirmed (✅) and Uncertain (⚠), double-click to edit labels, or discard inaccurate memory fragments.
 
-## Expanding the Oxlint configuration
+3. **Step 3: Targeted Inquiry**
+   If confidence remains low, the Detective Engine formulates a single, high-information-gain clarification question (e.g. *“Could the bionic arm have belonged to a visually similar actor like Laurence Fishburne instead?”*) rather than generic questions.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+4. **Step 4: Candidate Dossier**
+   View ranked movie candidates dominated by 2:3 aspect-ratio posters. Learn why each movie matches, view list of suspected memory errors (what you got wrong), and launch official YouTube trailers, IMDb, or TMDb dossiers.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+---
+
+## System Architecture
+
+```mermaid
+graph TD
+    Browser[Vite Client App]
+    Worker[Cloudflare Workers Proxy]
+    LLM[LLM Provider: Gemini / Groq / OpenRouter]
+    TMDB[The Movie Database API]
+
+    Browser -- 1. Submit query/clues --> Worker
+    Worker -- 2. Parse configuration & build prompts --> LLM
+    LLM -- 3. Structured JSON --> Worker
+    Worker -- 4. Fetch artwork if TMDB configured --> TMDB
+    TMDB -- 5. Image URLs & IMDb IDs --> Worker
+    Worker -- 6. Secure payload response --> Browser
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+* **Client**: React 19, TypeScript, Tailwind CSS, Framer Motion, and Vitest.
+* **Edge Worker**: Cloudflare Pages Function endpoint resolving provider selections securely.
+* **Provider Abstraction**: A unified adapter system allowing switching LLM runtimes dynamically via `MOVIE_PROVIDER` configurations (`gemini` | `groq` | `openrouter`).
+* **Cryptographic Security**: No client-side storage or transmission of LLM API keys. All keys reside inside the environment vault on Cloudflare.
+
+---
+
+## Local Development
+
+### Installation
+
+Install dependencies:
+```bash
+npm install
+```
+
+### Config Environment Variables
+
+Configure these variables inside your Cloudflare wrangler configuration or local `.dev.vars`:
+* `MOVIE_PROVIDER`: `gemini` (default), `groq`, or `openrouter`
+* `GEMINI_API_KEY`: Your Google Gemini API Key
+* `GROQ_API_KEY`: Your Groq API Key
+* `OPENROUTER_API_KEY`: Your OpenRouter API Key
+* `TMDB_API_KEY`: Your The Movie Database Key (for posters and IMDb links)
+
+### CLI Commands
+
+* **Run Development Server**:
+  ```bash
+  npm run dev
+  ```
+
+* **Execute Test Suite**:
+  ```bash
+  npm run test
+  ```
+
+* **Compile for Production**:
+  ```bash
+  npm run build
+  ```
