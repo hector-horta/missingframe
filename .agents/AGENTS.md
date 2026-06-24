@@ -15,3 +15,10 @@ These are strict technical guidelines for all AI agents developing the Missing F
 ## 3. Code Quality & Limit Thresholds
 - **500-Line Limit**: Any source file (e.g., `.tsx`, `.ts`, `.css`) must not exceed 500 lines of code.
 - If a file exceeds or is approaching 500 lines upon finishing a feature, evaluate and execute a modular refactoring (extracting components, custom hooks, or utility services) to keep files concise, readable, and maintainable.
+
+## 4. Web Development Code Smells & Refactoring
+AI agents must actively review the code for common web development smells and refactor them if found:
+- **Nontrivial Inline Styles**: Nontrivial layouts and styles (e.g., layout grids, borders, margins, padding, flex alignments) must reside in CSS classes inside the stylesheet, not inside React `style={{ ... }}` objects. Inline styles are reserved ONLY for highly dynamic properties (e.g., backdrop image URLs, dynamic sizing calculated at runtime, coordinates).
+- **Missing Accessibility (a11y)**: Buttons must have `aria-label` or textual context; form elements must have matching `<label>` wrappers or references; interactive components must support keyboard focus and custom `:focus-visible` outline treatments.
+- **Redundant React State**: Derived data (e.g., calculating items count, status text formatting, simple boolean checks) must be calculated on-the-fly during rendering, not stored as separate states that require sync effects.
+- **Tight Coupling & Monolithic Files**: Split services, hooks, and presentation components into dedicated files to ensure single-responsibility behavior.

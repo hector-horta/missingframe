@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { reconstructMemory, getLocalGeminiKey, getLocalTMDBKey } from '../src/services/reconstruct';
+import { extractClues, reconstructFromClues } from '../src/services/reconstruct';
 
-describe('reconstructMemory service', () => {
+describe('extractClues service', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.stubGlobal('fetch', vi.fn());
@@ -16,44 +16,34 @@ describe('reconstructMemory service', () => {
     vi.unstubAllGlobals();
   });
 
-  it('retrieves from Cloudflare API when endpoint is successful', async () => {
-    const mockResponse = {
-      needsFollowUp: false,
-      reconstructedMovie: {
-        title: 'Se7en',
-        year: '1995',
-        director: 'David Fincher',
-        confidence: 95,
-        summary: 'Two detectives hunt a serial killer.',
-        alignments: [],
-        explanation: 'Matches sins and box.'
-      }
+  it('calls Cloudflare api/extract successfully', async () => {
+    const mockExtractResponse = {
+      clues: [
+        { text: 'Sci-Fi', status: 'valid' },
+        { text: 'Forest Whitaker', status: 'doubtful' }
+      ]
     };
 
     (fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse
+      json: async () => mockExtractResponse
     });
 
-    const result = await reconstructMemory('brad pitt box sins raining');
+    const result = await extractClues('sci-fi forest whitaker');
     
-    expect(fetch).toHaveBeenCalledWith('/api/reconstruct', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith('/api/extract', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ query: 'brad pitt box sins raining' })
+      body: JSON.stringify({ query: 'sci-fi forest whitaker' })
     }));
-    expect(result.reconstructedMovie?.title).toBe('Se7en');
+    expect(result.clues).toHaveLength(2);
+    expect(result.clues[0].text).toBe('Sci-Fi');
+    expect(result.clues[1].status).toBe('doubtful');
   });
 
-  it('falls back to client-side Gemini call when Cloudflare API fails and local key exists', async () => {
-    localStorage.setItem('MF_GEMINI_API_KEY', 'local-gemini-key-123');
+  it('falls back to direct Gemini call for extraction when Cloudflare fails', async () => {
+    localStorage.setItem('MF_GEMINI_API_KEY', 'my-gemini-key');
+    (fetch as any).mockResolvedValueOnce({ ok: false, status: 404 }); // Cloudflare 404
 
-    // First fetch: /api/reconstruct fails (e.g. 404)
-    (fetch as any).mockResolvedValueOnce({
-      ok: false,
-      status: 404
-    });
-
-    // Second fetch: Client fallback direct to Gemini API
     const mockGeminiResponse = {
       candidates: [
         {
@@ -61,16 +51,9 @@ describe('reconstructMemory service', () => {
             parts: [
               {
                 text: JSON.stringify({
-                  needsFollowUp: false,
-                  reconstructedMovie: {
-                    title: 'Inception',
-                    year: '2010',
-                    director: 'Christopher Nolan',
-                    confidence: 90,
-                    summary: 'Dreams within dreams.',
-                    alignments: [],
-                    explanation: 'Correct top and wife.'
-                  }
+                  clues: [
+                    { text: 'Time travel', status: 'valid' }
+                  ]
                 })
               }
             ]
@@ -84,19 +67,77 @@ describe('reconstructMemory service', () => {
       json: async () => mockGeminiResponse
     });
 
-    const result = await reconstructMemory('dreams top leo wife ghost');
-    
-    expect(fetch).toHaveBeenCalledTimes(2);
-    // Verified direct gemini link was called
+    const result = await extractClues('time travel movie');
+    expect(result.clues[0].text).toBe('Time travel');
     expect((fetch as any).mock.calls[1][0]).toContain('generativelanguage.googleapis.com');
-    expect((fetch as any).mock.calls[1][0]).toContain('key=local-gemini-key-123');
-    expect(result.reconstructedMovie?.title).toBe('Inception');
+  });
+});
+
+describe('reconstructFromClues service', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.stubGlobal('fetch', vi.fn());
   });
 
-  it('throws error when Cloudflare API fails and no local API key is configured', async () => {
-    // Cloudflare api throws error
-    (fetch as any).mockRejectedValueOnce(new Error('Network offline'));
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
-    await expect(reconstructMemory('test query')).rejects.toThrow(/Missing Gemini API key/);
+  it('calls Cloudflare api/reconstruct with clues', async () => {
+    const mockReconstructResponse = {
+      needsFollowUp: false,
+      candidates: [
+        {
+          title: 'Arrival',
+          year: '2016',
+          director: 'Denis Villeneuve',
+          confidence: 95,
+          whyItMatches: 'Contains bionic legs and aliens.',
+          whyItMightNotMatch: 'No Forest Whitaker is in the film.',
+          imdbId: 'tt2543164',
+          tmdbId: '329865'
+        }
+      ]
+    };
+
+    (fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockReconstructResponse
+    });
+
+    const result = await reconstructFromClues([
+      { text: 'Sci-Fi', status: 'valid' },
+      { text: 'Bionic legs', status: 'valid' }
+    ]);
+
+    expect(fetch).toHaveBeenCalledWith('/api/reconstruct', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        clues: [
+          { text: 'Sci-Fi', status: 'valid' },
+          { text: 'Bionic legs', status: 'valid' }
+        ]
+      })
+    }));
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates?.[0].title).toBe('Arrival');
+    expect(result.candidates?.[0].imdbId).toBe('tt2543164');
+  });
+
+  it('handles low confidence follow-up responses', async () => {
+    const mockReconstructResponse = {
+      needsFollowUp: true,
+      followUpQuestion: 'Could the actor have been Laurence Fishburne instead?'
+    };
+
+    (fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockReconstructResponse
+    });
+
+    const result = await reconstructFromClues([{ text: 'Matrix-like', status: 'valid' }]);
+    
+    expect(result.needsFollowUp).toBe(true);
+    expect(result.followUpQuestion).toBe('Could the actor have been Laurence Fishburne instead?');
   });
 });

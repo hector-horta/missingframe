@@ -2,8 +2,13 @@ interface Env {
   GEMINI_API_KEY?: string;
 }
 
+interface Clue {
+  text: string;
+  status: 'valid' | 'doubtful';
+}
+
 interface RequestBody {
-  query: string;
+  clues: Clue[];
   followUpQuestion?: string;
   followUpAnswer?: string;
 }
@@ -20,33 +25,38 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    const { query, followUpQuestion, followUpAnswer } = (await request.json()) as RequestBody;
+    const { clues, followUpQuestion, followUpAnswer } = (await request.json()) as RequestBody;
 
-    if (!query) {
+    if (!clues || clues.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Missing memory query." }),
+        JSON.stringify({ error: "Missing clues list." }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const systemInstruction = `You are the Missing Frame Detective, an elite film investigator who helps users reconstruct forgotten movies from highly fragmented, incorrect, or mixed memories.
-Human memory is fallible: people confuse actors, mix plots, remember emotions over events, and recall visual details rather than titles. Your job is to dissect their clues, correct their mistakes, and identify the single most likely movie.
-
+    const systemInstruction = `You are the Missing Frame Detective.
+Your job is to evaluate a list of user-provided clues (marked as valid or doubtful) and reconstruct the most likely candidate movies.
 Your behavior:
 - Speak like a confident, minimal, intelligent detective.
-- Determine if the user's description is too ambiguous to identify a primary movie candidate with at least 80% confidence.
-- If it is too ambiguous AND this is the first iteration (meaning no followUpAnswer/followUpQuestion is provided), you MUST set "needsFollowUp" to true and formulate "followUpQuestion" as ONE single, highly intelligent, thematic question to narrow it down (e.g., 'Do you remember the ending happening in a desert under a baking sun, or in a rain-soaked city?'). Keep it cinematic, not robotic. Do not make it sound like Akinator or filling a form.
-- If you can resolve the movie immediately, or if a follow-up answer is already provided, you MUST set "needsFollowUp" to false and populate "reconstructedMovie" fully.
-- In "reconstructedMovie.alignments", map the user's memory fragments to the actual film facts, categorizing each alignment status as:
-  - "match" (memory aligns with reality, e.g., "Brad Pitt plays a detective")
-  - "misremembered" (user confused something, e.g., "thought it was Tom Cruise, but it was Brad Pitt")
-  - "correction" (user mixed up scenes, plots, or movies, e.g., "the box ending is from Se7en, not Fight Club")
-- Keep explanations and summaries concise but highly cinematic and confident.`;
+- Determine if the provided clues are sufficient to identify the primary candidate movie with high confidence (e.g. >= 80%).
+- If the confidence is low (meaning multiple matches are possible, or the clues are highly ambiguous/contradictory) AND this is the first iteration (meaning no followUpAnswer is provided), set "needsFollowUp" to true and formulate "followUpQuestion" as ONE single, highly intelligent, thematic question to narrow it down (e.g., 'Could the actor have been Laurence Fishburne instead?'). Maximize information gain. Keep it cinematic and concise.
+- If you can resolve the movies immediately, or if the user has answered the follow-up, set "needsFollowUp" to false and return a list of ranked "candidates" (up to 3).
+- For each movie candidate, populate the following fields:
+  - "title": Movie title.
+  - "year": Release year.
+  - "director": Director's name.
+  - "confidence": Your confidence percentage (integer).
+  - "whyItMatches": Clear reasons why it matches the user's clues.
+  - "whyItMightNotMatch": Any contradictions or details that do not match.
+  - "imdbId": The actual IMDb ID for this movie (e.g., 'tt2543164').
+  - "tmdbId": The actual TMDb ID for this movie (e.g., '329865').
+- Never look like a chatbot; output only the requested JSON data structure.`;
 
-    // Construct history message if there's a follow-up interaction
-    let promptContent = `User memory query: "${query}"`;
+    let promptContent = `Active clues extracted from memory:\n` + 
+      clues.map((c) => `- ${c.text} (status: ${c.status})`).join('\n');
+      
     if (followUpQuestion && followUpAnswer) {
-      promptContent += `\nDetective follow-up question: "${followUpQuestion}"\nUser answer to follow-up: "${followUpAnswer}"\n\nBased on the original query and the follow-up answer, reconstruct the movie.`;
+      promptContent += `\n\nDetective Inquiry: "${followUpQuestion}"\nUser Answer: "${followUpAnswer}"\n\nBased on these details, reconstruct the final ranked candidates.`;
     }
 
     const geminiPayload = {
@@ -66,29 +76,22 @@ Your behavior:
           properties: {
             needsFollowUp: { type: "BOOLEAN" },
             followUpQuestion: { type: "STRING" },
-            reconstructedMovie: {
-              type: "OBJECT",
-              properties: {
-                title: { type: "STRING" },
-                year: { type: "STRING" },
-                director: { type: "STRING" },
-                confidence: { type: "INTEGER" },
-                summary: { type: "STRING" },
-                alignments: {
-                  type: "ARRAY",
-                  items: {
-                    type: "OBJECT",
-                    properties: {
-                      memory: { type: "STRING" },
-                      reality: { type: "STRING" },
-                      status: { type: "STRING", enum: ["match", "misremembered", "correction"] }
-                    },
-                    required: ["memory", "reality", "status"]
-                  }
+            candidates: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  title: { type: "STRING" },
+                  year: { type: "STRING" },
+                  director: { type: "STRING" },
+                  confidence: { type: "INTEGER" },
+                  whyItMatches: { type: "STRING" },
+                  whyItMightNotMatch: { type: "STRING" },
+                  imdbId: { type: "STRING" },
+                  tmdbId: { type: "STRING" }
                 },
-                explanation: { type: "STRING" }
-              },
-              required: ["title", "year", "confidence", "summary", "alignments", "explanation"]
+                required: ["title", "year", "director", "confidence", "whyItMatches", "whyItMightNotMatch", "imdbId", "tmdbId"]
+              }
             }
           },
           required: ["needsFollowUp"]
@@ -118,12 +121,11 @@ Your behavior:
 
     if (!responseText) {
       return new Response(
-        JSON.stringify({ error: "Gemini API returned an empty response." }),
+        JSON.stringify({ error: "Gemini API returned an empty response during reconstruction." }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Return the structured JSON from Gemini directly
     return new Response(responseText, {
       status: 200,
       headers: { "Content-Type": "application/json" }

@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Settings, Film, AlertTriangle } from 'lucide-react';
 import { DetectiveConsole } from './components/DetectiveConsole';
+import { ClueChipsView } from './components/ClueChipsView';
 import { ReconstructionScreen } from './components/ReconstructionScreen';
 import { FollowUpModal } from './components/FollowUpModal';
 import { SettingsModal } from './components/SettingsModal';
-import { reconstructMemory, getLocalGeminiKey } from './services/reconstruct';
-import type { ReconstructedMovie } from './services/reconstruct';
+import { extractClues, reconstructFromClues, getLocalGeminiKey } from './services/reconstruct';
+import type { Clue, CandidateMovie } from './services/reconstruct';
+
+type Step = 1 | 2 | 4;
 
 function App() {
+  const [step, setStep] = useState<Step>(1);
   const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [movie, setMovie] = useState<ReconstructedMovie | null>(null);
+  const [clues, setClues] = useState<Clue[]>([]);
+  const [candidates, setCandidates] = useState<CandidateMovie[]>([]);
   const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
-  
+
+  const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noKeyWarning, setNoKeyWarning] = useState(false);
@@ -21,96 +26,95 @@ function App() {
   useEffect(() => {
     const key = getLocalGeminiKey();
     if (!key) {
-      // Check if we are running in local dev mode
       setNoKeyWarning(true);
     }
   }, []);
 
-  const handleReconstruct = async (searchQuery: string) => {
+  // Step 1: Submit raw description to extract clues
+  const handleExtractClues = async (searchQuery: string) => {
     setIsLoading(true);
     setError(null);
     setQuery(searchQuery);
 
     try {
-      const response = await reconstructMemory(searchQuery);
-      
-      if (response.needsFollowUp && response.followUpQuestion) {
-        setFollowUpQuestion(response.followUpQuestion);
-      } else if (response.reconstructedMovie) {
-        setMovie(response.reconstructedMovie);
-      }
+      const response = await extractClues(searchQuery);
+      setClues(response.clues || []);
+      setStep(2);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "The reconstruction engine encountered a memory fault.");
+      setError(err.message || "Failed to extract clues from memory synapses.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Step 2: Submit refined clues list to reconstruct
+  const handleReconstruct = async (refinedClues: Clue[]) => {
+    setClues(refinedClues);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await reconstructFromClues(refinedClues);
+      
+      if (response.needsFollowUp && response.followUpQuestion) {
+        setFollowUpQuestion(response.followUpQuestion);
+      } else if (response.candidates && response.candidates.length > 0) {
+        setCandidates(response.candidates);
+        setStep(4);
+      } else {
+        setError("Reconstruction returned empty matching database records.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Reconstruction failed to assemble movie candidates.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 3: Handle follow-up response
   const handleFollowUpSubmit = async (answer: string) => {
     if (!followUpQuestion) return;
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await reconstructMemory(query, followUpQuestion, answer);
+      const response = await reconstructFromClues(clues, followUpQuestion, answer);
       
       // Clear follow up
       setFollowUpQuestion(null);
 
-      if (response.reconstructedMovie) {
-        setMovie(response.reconstructedMovie);
+      if (response.candidates && response.candidates.length > 0) {
+        setCandidates(response.candidates);
+        setStep(4);
       } else {
-        setError("Reconstruction failed to converge after follow-up inquiry.");
+        setError("Failed to resolve candidate target after follow-up details.");
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Memory fault resolved during follow-up analysis.");
+      setError(err.message || "Reconstruction failed during follow-up query evaluation.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleReset = () => {
-    setMovie(null);
-    setFollowUpQuestion(null);
+    setStep(1);
     setQuery('');
+    setClues([]);
+    setCandidates([]);
+    setFollowUpQuestion(null);
     setError(null);
   };
 
   return (
     <div className="cinema-container">
       {/* Cinematic Navigation Header */}
-      <header 
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '1.25rem',
-          marginBottom: '2.5rem'
-        }}
-      >
-        <div 
-          onClick={handleReset}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.6rem', 
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}
-        >
+      <header className="app-header">
+        <div onClick={handleReset} className="app-logo">
           <Film style={{ color: 'var(--accent-gold)' }} size={22} />
-          <span 
-            className="font-display text-glow-gold" 
-            style={{ 
-              fontSize: '1.2rem', 
-              fontWeight: 700, 
-              color: 'var(--accent-gold)',
-              letterSpacing: '0.15em'
-            }}
-          >
+          <span className="font-display text-glow-gold app-logo-text">
             Missing Frame
           </span>
         </div>
@@ -118,15 +122,7 @@ function App() {
         <div>
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="btn-secondary"
-            style={{
-              padding: '0.5rem 0.8rem',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid var(--border-color)'
-            }}
+            className="settings-toggle-btn btn-secondary"
             aria-label="Detective settings"
           >
             <Settings size={18} />
@@ -136,20 +132,7 @@ function App() {
 
       {/* Warnings & Errors */}
       {noKeyWarning && !getLocalGeminiKey() && (
-        <div 
-          className="glass-panel"
-          style={{
-            padding: '1rem 1.5rem',
-            border: '1px solid var(--border-color-glow)',
-            color: 'var(--accent-gold)',
-            borderRadius: '8px',
-            marginBottom: '2rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '0.85rem'
-          }}
-        >
+        <div className="warning-banner glass-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <AlertTriangle size={18} />
             <span>Missing Gemini API Key. Provide it in Settings (key icon) to enable local reconstruction.</span>
@@ -165,43 +148,39 @@ function App() {
       )}
 
       {error && (
-        <div 
-          className="glass-panel"
-          style={{
-            padding: '1rem 1.5rem',
-            border: '1px solid var(--error)',
-            color: 'var(--error)',
-            borderRadius: '8px',
-            marginBottom: '2rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            fontSize: '0.85rem',
-            background: 'rgba(229, 72, 77, 0.05)'
-          }}
-        >
+        <div className="error-banner glass-panel">
           <AlertTriangle size={18} />
           <span>{error}</span>
         </div>
       )}
 
       {/* Main Workspace Body */}
-      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-        {movie ? (
-          <ReconstructionScreen 
-            movie={movie} 
-            onDigAgain={handleReset} 
-          />
-        ) : (
+      <main className="app-main">
+        {step === 1 && (
           <DetectiveConsole 
-            onSubmit={handleReconstruct} 
+            onSubmit={handleExtractClues} 
             isLoading={isLoading} 
             initialQuery={query}
           />
         )}
+        
+        {step === 2 && (
+          <ClueChipsView 
+            clues={clues} 
+            onReconstruct={handleReconstruct}
+            isLoading={isLoading}
+          />
+        )}
+
+        {step === 4 && (
+          <ReconstructionScreen 
+            candidates={candidates} 
+            onReset={handleReset} 
+          />
+        )}
       </main>
 
-      {/* Detective follow-up modal */}
+      {/* Detective follow-up modal popover */}
       {followUpQuestion && (
         <FollowUpModal 
           question={followUpQuestion} 
@@ -220,17 +199,7 @@ function App() {
       />
 
       {/* Cinematic Footer */}
-      <footer 
-        style={{
-          borderTop: '1px solid var(--border-color)',
-          paddingTop: '1.25rem',
-          marginTop: '2.5rem',
-          textAlign: 'center',
-          color: 'var(--text-muted)',
-          fontSize: '0.75rem',
-          letterSpacing: '0.05em'
-        }}
-      >
+      <footer className="app-footer">
         <p>MISSING FRAME © {new Date().getFullYear()} — AN ELITE CINEMATIC RECONSTRUCTION PROJECT.</p>
       </footer>
     </div>

@@ -34,46 +34,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div 
-      className="settings-overlay flex-center"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        backgroundColor: 'rgba(5, 5, 8, 0.85)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      <div 
-        className="glass-panel settings-content fade-in-reveal"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: '480px',
-          padding: '2.5rem',
-          position: 'relative',
-          border: '1px solid var(--border-color-glow)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.5rem'
-        }}
-      >
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="glass-panel modal-content-wrap fade-in-reveal" onClick={(e) => e.stopPropagation()}>
         <button 
-          className="close-btn" 
+          className="modal-close-btn" 
           onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '1.25rem',
-            right: '1.25rem',
-            color: 'var(--text-secondary)',
-            transition: 'color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+          aria-label="close settings"
         >
           <X size={20} />
         </button>
@@ -88,11 +54,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         </div>
 
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label 
-              htmlFor="gemini-key-input"
-              style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
+          <div className="form-group">
+            <label htmlFor="gemini-key-input" className="form-label">
               <Key size={14} style={{ color: 'var(--accent-gold)' }} /> Gemini API Key
             </label>
             <input
@@ -101,29 +64,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               placeholder="AI Engine Key..."
               value={geminiKey}
               onChange={(e) => setGeminiKey(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                color: 'var(--text-primary)',
-                fontSize: '0.9rem',
-                transition: 'border-color 0.3s'
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+              className="form-input-field"
             />
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               Required if not deployed with a secure Cloudflare environment variable.
             </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label 
-              htmlFor="tmdb-key-input"
-              style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
+          <div className="form-group">
+            <label htmlFor="tmdb-key-input" className="form-label">
               <Film size={14} style={{ color: 'var(--accent-gold)' }} /> TMDB API Key (Optional)
             </label>
             <input
@@ -132,18 +81,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               placeholder="The Movie Database Key..."
               value={tmdbKey}
               onChange={(e) => setTmdbKey(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                color: 'var(--text-primary)',
-                fontSize: '0.9rem',
-                transition: 'border-color 0.3s'
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+              className="form-input-field"
             />
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               Enables rich visual movie poster and backdrop reconstruction.

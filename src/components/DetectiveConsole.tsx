@@ -69,7 +69,6 @@ export const DetectiveConsole: React.FC<DetectiveConsoleProps> = ({ onSubmit, is
             overflow: 'hidden'
           }}
         >
-          {/* Pulsing glow animation background */}
           <div 
             style={{
               position: 'absolute',
@@ -106,7 +105,7 @@ export const DetectiveConsole: React.FC<DetectiveConsoleProps> = ({ onSubmit, is
           <div style={{ position: 'relative' }}>
             <textarea
               className="console-textarea"
-              placeholder="Whisper your fragments. The mixed plots, the misremembered actors, the sensory details..."
+              placeholder="Describe everything you remember. It doesn't matter if some details are wrong."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -143,53 +142,56 @@ export const DetectiveConsole: React.FC<DetectiveConsoleProps> = ({ onSubmit, is
             </button>
           </div>
 
-          <div className="suggestions-container" style={{ marginTop: '1rem' }}>
-            <div 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
-                color: 'var(--text-secondary)', 
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                marginBottom: '0.75rem'
-              }}
-            >
-              <Compass size={14} style={{ color: 'var(--accent-gold)' }} /> Or start with a fragmented memory:
+          {/* Suggestions disappear once typing starts (i.e., query is empty) */}
+          {!query && (
+            <div className="suggestions-container fade-in-reveal" style={{ marginTop: '1rem' }}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  color: 'var(--text-secondary)', 
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '0.75rem'
+                }}
+              >
+                <Compass size={14} style={{ color: 'var(--accent-gold)' }} /> Or start with a fragmented memory:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {SUGGESTIONS.map((suggestion, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="glass-panel suggestion-item"
+                    style={{
+                      padding: '1rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)',
+                      transition: 'all 0.3s var(--ease-cinema)',
+                      border: '1px solid var(--border-color)',
+                      background: 'rgba(255, 255, 255, 0.01)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                      e.currentTarget.style.background = 'rgba(212, 175, 55, 0.02)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                  >
+                    <span className="text-serif-italic">"{suggestion}"</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {SUGGESTIONS.map((suggestion, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="glass-panel suggestion-item"
-                  style={{
-                    padding: '1rem',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    color: 'var(--text-secondary)',
-                    transition: 'all 0.3s var(--ease-cinema)',
-                    border: '1px solid var(--border-color)',
-                    background: 'rgba(255, 255, 255, 0.01)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-                    e.currentTarget.style.background = 'rgba(212, 175, 55, 0.02)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
-                >
-                  <span className="text-serif-italic">"{suggestion}"</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </form>
       )}
     </div>

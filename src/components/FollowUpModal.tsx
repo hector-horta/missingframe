@@ -18,32 +18,8 @@ export const FollowUpModal: React.FC<FollowUpModalProps> = ({ question, onSubmit
   };
 
   return (
-    <div 
-      className="settings-overlay flex-center"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 990,
-        backgroundColor: 'rgba(5, 5, 8, 0.9)',
-        backdropFilter: 'blur(12px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      <div 
-        className="glass-panel fade-in-reveal"
-        style={{
-          width: '100%',
-          maxWidth: '560px',
-          padding: '3rem 2.5rem',
-          border: '1px solid var(--border-color-glow)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2rem',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), 0 0 40px rgba(212, 175, 55, 0.05)'
-        }}
-      >
+    <div className="followup-overlay">
+      <div className="glass-panel followup-content-wrap fade-in-reveal">
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
           <div 
             style={{
@@ -81,32 +57,23 @@ export const FollowUpModal: React.FC<FollowUpModalProps> = ({ question, onSubmit
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ position: 'relative' }}>
+          <div>
             <textarea
               placeholder="Answer the inquiry, or state what else you recall..."
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               disabled={isLoading}
-              style={{
-                width: '100%',
-                minHeight: '100px',
-                padding: '1rem 1.25rem',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem',
-                fontFamily: 'var(--font-serif)',
-                fontStyle: 'italic',
-                resize: 'none',
-                transition: 'all 0.3s var(--ease-cinema)'
+              className="followup-text-area"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button 
               type="submit" 
               className="btn-gold" 
