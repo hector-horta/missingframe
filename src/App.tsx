@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Film, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { DetectiveConsole } from './components/DetectiveConsole';
 import { ClueChipsView } from './components/ClueChipsView';
 import { ReconstructionScreen } from './components/ReconstructionScreen';
@@ -114,37 +114,28 @@ function App() {
 
   return (
     <div className="cinema-container">
-      {/* Cinematic Navigation Header */}
-      <header className="app-header">
-        <div onClick={handleReset} className="app-logo">
-          <Film style={{ color: 'var(--accent-gold)' }} size={22} />
-          <span className="font-display text-glow-gold app-logo-text">
-            Missing Frame
-          </span>
-        </div>
-
-        <div>
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="settings-toggle-btn btn-secondary"
-            aria-label="Detective settings"
-          >
-            <Settings size={18} />
-          </button>
-        </div>
-      </header>
+      {/* Cinematic Navigation Header (Only displayed after Step 1) */}
+      {step !== 1 && (
+        <header className="app-header fade-in-reveal" style={{ justifyContent: 'space-between', borderBottom: '1px solid rgba(230,230,223,0.05)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+          <div onClick={handleReset} className="app-logo" style={{ flexDirection: 'row', gap: '0.5rem' }}>
+            <span className="font-display app-logo-text" style={{ fontSize: '1rem', letterSpacing: '0.15em' }}>
+              Missing Frame
+            </span>
+          </div>
+        </header>
+      )}
 
       {/* Warnings & Errors */}
       {noKeyWarning && !getLocalGeminiKey() && (
         <div className="warning-banner glass-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <AlertTriangle size={18} />
-            <span>Missing Gemini API Key. Provide it in Settings (key icon) to enable local reconstruction.</span>
+            <span>Missing Gemini API Key. Provide it in Settings (credentials link below) to enable local reconstruction.</span>
           </div>
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className="btn-gold"
-            style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }}
+            style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', border: '1px solid var(--text-primary)' }}
           >
             Setup Key
           </button>
@@ -160,27 +151,33 @@ function App() {
 
       {/* Main Workspace Body */}
       <main className="app-main">
-        {step === 1 && (
-          <DetectiveConsole 
-            onSubmit={handleExtractClues} 
-            isLoading={isLoading} 
-            initialQuery={query}
-          />
-        )}
-        
-        {step === 2 && (
-          <ClueChipsView 
-            clues={clues} 
-            onReconstruct={handleReconstruct}
-            isLoading={isLoading}
-          />
-        )}
+        {step === 1 ? (
+          /* Homepage: Centered Logo + Tagline + Textarea console */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3.5rem', width: '100%' }}>
+            <div className="app-logo fade-in-reveal">
+              <h1 className="app-logo-text">Missing Frame</h1>
+              <span className="app-tagline">Recover movie memories from fragmented synapses</span>
+            </div>
 
-        {step === 4 && (
-          <ReconstructionScreen 
-            candidates={candidates} 
-            onReset={handleReset} 
-          />
+            <DetectiveConsole 
+              onSubmit={handleExtractClues} 
+              isLoading={isLoading} 
+              initialQuery={query}
+            />
+          </div>
+        ) : (
+          step === 2 ? (
+            <ClueChipsView 
+              clues={clues} 
+              onReconstruct={handleReconstruct}
+              isLoading={isLoading}
+            />
+          ) : (
+            <ReconstructionScreen 
+              candidates={candidates} 
+              onReset={handleReset} 
+            />
+          )
         )}
       </main>
 
@@ -202,9 +199,17 @@ function App() {
         }} 
       />
 
-      {/* Cinematic Footer */}
+      {/* Cinematic A24 Footer */}
       <footer className="app-footer">
         <p>MISSING FRAME © {new Date().getFullYear()} — AN ELITE CINEMATIC RECONSTRUCTION PROJECT.</p>
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          style={{ fontSize: '0.65rem', color: 'var(--text-muted)', cursor: 'pointer', transition: 'color 0.3s', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.4rem' }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          credentials
+        </button>
       </footer>
     </div>
   );

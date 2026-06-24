@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Flame, ExternalLink, Play } from 'lucide-react';
+import { RotateCcw, Flame, ExternalLink, Play, Film } from 'lucide-react';
 import type { CandidateMovie } from '../services/reconstruct';
 
 interface ReconstructionScreenProps {
@@ -141,33 +141,32 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
         <div 
           className="fade-in-reveal"
           style={{
-            background: 'rgba(212, 175, 55, 0.08)',
-            border: '1px solid var(--accent-gold)',
-            color: 'var(--accent-gold)',
-            padding: '1.25rem',
-            borderRadius: '8px',
-            marginBottom: '2rem',
+            border: '1px solid var(--text-primary)',
+            color: 'var(--text-primary)',
+            padding: '1.5rem',
+            borderRadius: '0px',
+            marginBottom: '4rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.75rem',
-            boxShadow: '0 0 25px rgba(212, 175, 55, 0.15)',
             textAlign: 'center',
-            fontSize: '1.1rem',
+            fontSize: '1rem',
             fontWeight: 600,
-            letterSpacing: '0.05em'
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase'
           }}
         >
-          <Flame size={20} style={{ animation: 'bounce-slow 1s infinite alternate' }} />
-          <span>RECONSTRUCTION SUCCESSFUL: "{selectedMovie.title.toUpperCase()}" IS THE MOVIE!</span>
+          <Flame size={18} style={{ color: 'var(--accent-blue)' }} />
+          <span>Dossier Complete: "{selectedMovie.title}" has been recovered.</span>
         </div>
       )}
 
       <div className="reconstruction-header">
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-          Step 4 — Reconstructed Matches
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+          Dossier Matches
         </span>
-        <h2 className="font-display text-glow-gold" style={{ fontSize: '2rem', marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+        <h2 className="font-display text-glow-blue" style={{ fontSize: '2.5rem', marginTop: '0.5rem', textTransform: 'uppercase', fontWeight: 800 }}>
           Ranked Candidates
         </h2>
       </div>
@@ -181,77 +180,88 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
           return (
             <div 
               key={idx}
-              className={`candidate-card-item ${isSelected ? 'selected' : ''}`}
+              className="candidate-card-item"
             >
               {/* Poster Backdrop Header or Image */}
               <div className="candidate-media-wrap">
-                {candidate.backdropUrl ? (
+                {candidate.posterUrl ? (
                   <img 
-                    src={candidate.backdropUrl} 
-                    alt="" 
+                    src={candidate.posterUrl} 
+                    alt={candidate.title} 
                     className="candidate-media-img"
                   />
                 ) : (
-                  <div className="candidate-media-placeholder" />
+                  <div className="candidate-media-placeholder">
+                    <div>
+                      <Film size={24} style={{ marginBottom: '1rem', opacity: 0.4, margin: '0 auto' }} />
+                      <h4 style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)' }}>
+                        {candidate.title}
+                      </h4>
+                    </div>
+                  </div>
                 )}
                 
                 {/* Confidence Floating Tag */}
                 <div className="candidate-confidence-badge">
                   {matchPercent}% Match
                 </div>
-
               </div>
 
               {/* Main Content Details */}
               <div className="candidate-details-wrap">
-                <div>
-                  <h3 className="font-display" style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>
-                    {candidate.title} ({candidate.year})
-                  </h3>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                  {/* Why it matches */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div>
-                    <span className="candidate-section-title match">
-                      ✓ Clue Alignment
+                    <h3 className="font-display" style={{ fontSize: '2rem', color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
+                      {candidate.title.toUpperCase()}
+                    </h3>
+                    <span className="text-serif-italic" style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginTop: '0.25rem', display: 'block' }}>
+                      Released in {candidate.year}
                     </span>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {candidate.why}
-                    </p>
                   </div>
 
-                  {/* Why it might not match / Possible memory errors */}
-                  {candidate.possible_memory_errors && candidate.possible_memory_errors.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Why it matches */}
                     <div>
-                      <span className="candidate-section-title conflict">
-                        ⚠ Conflict Markers
+                      <span className="candidate-section-title match">
+                        Clue Alignment
                       </span>
-                      <ul style={{ paddingLeft: '1rem', margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        {candidate.possible_memory_errors.map((errorText, eIdx) => (
-                          <li key={eIdx} style={{ lineHeight: 1.5, marginBottom: '0.2rem' }}>
-                            {errorText}
-                          </li>
-                        ))}
-                      </ul>
+                      <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: 1.6, fontWeight: 300 }}>
+                        {candidate.why}
+                      </p>
                     </div>
-                  )}
+
+                    {/* Why it might not match / Possible memory errors */}
+                    {candidate.possible_memory_errors && candidate.possible_memory_errors.length > 0 && (
+                      <div>
+                        <span className="candidate-section-title conflict">
+                          Suspected Synapses
+                        </span>
+                        <ul style={{ paddingLeft: '1.1rem', margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                          {candidate.possible_memory_errors.map((errorText, eIdx) => (
+                            <li key={eIdx} style={{ lineHeight: 1.6, marginBottom: '0.3rem' }}>
+                              {errorText}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* External links & Payoff actions */}
                 <div className="candidate-links-wrap">
                   
                   {/* Watch links */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <a 
                       href={`https://www.youtube.com/results?search_query=${encodeURIComponent(candidate.title + ' ' + candidate.year + ' official trailer')}`}
                       target="_blank"
                       rel="noreferrer"
                       className="btn-secondary"
-                      style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
+                      style={{ flex: 1, padding: '0.6rem', fontSize: '0.7rem', gap: '0.3rem' }}
                       aria-label="Watch Trailer"
                     >
-                      <Play size={12} /> Trailer
+                      <Play size={10} /> Trailer
                     </a>
                     
                     {candidate.imdbId && (
@@ -260,10 +270,10 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
                         target="_blank"
                         rel="noreferrer"
                         className="btn-secondary"
-                        style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
+                        style={{ flex: 1, padding: '0.6rem', fontSize: '0.7rem', gap: '0.3rem' }}
                         aria-label="IMDb link"
                       >
-                        IMDb <ExternalLink size={10} />
+                        IMDb <ExternalLink size={8} />
                       </a>
                     )}
 
@@ -273,10 +283,10 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
                         target="_blank"
                         rel="noreferrer"
                         className="btn-secondary"
-                        style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
+                        style={{ flex: 1, padding: '0.6rem', fontSize: '0.7rem', gap: '0.3rem' }}
                         aria-label="TMDb link"
                       >
-                        TMDb <ExternalLink size={10} />
+                        TMDb <ExternalLink size={8} />
                       </a>
                     )}
                   </div>
@@ -286,14 +296,14 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
                     <button 
                       onClick={() => handleThatIsTheMovie(candidate)} 
                       className="btn-gold"
-                      style={{ width: '100%', padding: '0.6rem' }}
+                      style={{ width: '100%', padding: '0.8rem', fontSize: '0.75rem' }}
                     >
                       THAT'S THE MOVIE!
                     </button>
                   ) : (
                     isSelected && (
                       <div className="candidate-selected-badge">
-                        Confirmed Selection
+                        Dossier Confirmed
                       </div>
                     )
                   )}
@@ -307,7 +317,7 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
       {/* Dig again footer button */}
       <div className="dig-again-wrap">
         <button onClick={onReset} className="btn-secondary" style={{ minWidth: '180px' }}>
-          <RotateCcw size={14} /> Dig Again
+          <RotateCcw size={12} /> Dig Again
         </button>
       </div>
     </div>

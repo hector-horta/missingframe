@@ -84,7 +84,8 @@ describe('ReconstructionScreen Component (Step 4)', () => {
 
     render(<ReconstructionScreen candidates={candidates} onReset={vi.fn()} />);
 
-    expect(screen.getByText('Arrival (2016)')).toBeInTheDocument();
+    expect(screen.getByText('ARRIVAL')).toBeInTheDocument();
+    expect(screen.getByText(/Released in 2016/)).toBeInTheDocument();
     expect(screen.getByText(/Contains detailed alien/i)).toBeInTheDocument();
     expect(screen.getByText(/Confused Forest Whitaker/i)).toBeInTheDocument();
 

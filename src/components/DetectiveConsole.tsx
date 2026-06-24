@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Compass, Cpu } from 'lucide-react';
+import { Compass, Cpu } from 'lucide-react';
 
 interface DetectiveConsoleProps {
   onSubmit: (query: string) => void;
@@ -55,45 +55,31 @@ export const DetectiveConsole: React.FC<DetectiveConsoleProps> = ({ onSubmit, is
   };
 
   return (
-    <div className="detective-console fade-in-reveal" style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="detective-console fade-in-reveal" style={{ width: '100%', maxWidth: '850px', margin: '0 auto', textAlign: 'center' }}>
       {isLoading ? (
         <div 
-          className="glass-panel flex-center"
           style={{
             minHeight: '260px',
+            display: 'flex',
             flexDirection: 'column',
-            gap: '1.5rem',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '2rem',
             padding: '2rem',
-            textAlign: 'center',
-            position: 'relative',
-            overflow: 'hidden'
+            textAlign: 'center'
           }}
         >
-          <div 
-            style={{
-              position: 'absolute',
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%)',
-              animation: 'pulse-glow 2s infinite ease-in-out'
-            }}
-          />
-          <Cpu className="text-glow-gold" size={36} style={{ color: 'var(--accent-gold)', animation: 'spin-slow 6s linear infinite' }} />
+          <Cpu size={32} style={{ color: 'var(--text-primary)', opacity: 0.6, animation: 'spin-slow 8s linear infinite' }} />
           <div>
-            <h3 className="font-display" style={{ fontSize: '1rem', letterSpacing: '0.1em', color: 'var(--accent-gold)', marginBottom: '0.5rem' }}>
+            <h3 className="font-display" style={{ fontSize: '0.8rem', letterSpacing: '0.2em', color: 'var(--text-primary)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>
               Detective Engine Active
             </h3>
-            <p className="text-serif-italic" style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', minHeight: '1.8lh' }}>
+            <p className="text-serif-italic" style={{ color: 'var(--text-secondary)', fontSize: '1.4rem', fontStyle: 'italic', fontWeight: 300, minHeight: '1.8lh' }}>
               {DETECTIVE_PHASES[phaseIndex]}
             </p>
           </div>
 
           <style>{`
-            @keyframes pulse-glow {
-              0%, 100% { transform: scale(1); opacity: 0.5; }
-              50% { transform: scale(1.5); opacity: 1; }
-            }
             @keyframes spin-slow {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
@@ -101,7 +87,7 @@ export const DetectiveConsole: React.FC<DetectiveConsoleProps> = ({ onSubmit, is
           `}</style>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
           <div style={{ position: 'relative' }}>
             <textarea
               className="console-textarea"
@@ -115,75 +101,61 @@ export const DetectiveConsole: React.FC<DetectiveConsoleProps> = ({ onSubmit, is
                 }
               }}
             />
-            <div 
-              style={{
-                position: 'absolute',
-                bottom: '1rem',
-                right: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: 'var(--text-muted)',
-                fontSize: '0.75rem'
-              }}
-            >
-              <span>Press Enter to analyze</span>
-            </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div>
             <button 
               type="submit" 
               className="btn-gold" 
               disabled={!query.trim()}
-              style={{ width: '100%', minWidth: '220px' }}
+              style={{ minWidth: '260px' }}
             >
-              <Search size={16} /> Reconstruct Memory
+              Recover Memory
             </button>
           </div>
 
-          {/* Suggestions disappear once typing starts (i.e., query is empty) */}
+          {/* Suggestions disappear immediately once user starts typing */}
           {!query && (
-            <div className="suggestions-container fade-in-reveal" style={{ marginTop: '1rem' }}>
+            <div className="suggestions-container fade-in-reveal" style={{ marginTop: '2rem', borderTop: '1px solid rgba(230, 230, 223, 0.05)', paddingTop: '2.5rem' }}>
               <div 
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
+                  justifyContent: 'center',
                   gap: '0.5rem', 
                   color: 'var(--text-secondary)', 
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  marginBottom: '0.75rem'
+                  letterSpacing: '0.15em',
+                  marginBottom: '1.5rem'
                 }}
               >
-                <Compass size={14} style={{ color: 'var(--accent-gold)' }} /> Or start with a fragmented memory:
+                <Compass size={12} /> Or start with a fragmented memory:
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '700px', margin: '0 auto' }}>
                 {SUGGESTIONS.map((suggestion, idx) => (
                   <div
                     key={idx}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="glass-panel suggestion-item"
                     style={{
-                      padding: '1rem',
+                      padding: '1.25rem',
                       cursor: 'pointer',
-                      fontSize: '0.9rem',
+                      fontSize: '0.95rem',
                       color: 'var(--text-secondary)',
-                      transition: 'all 0.3s var(--ease-cinema)',
-                      border: '1px solid var(--border-color)',
-                      background: 'rgba(255, 255, 255, 0.01)'
+                      transition: 'all 0.4s var(--ease-cinema)',
+                      border: '1px solid rgba(230, 230, 223, 0.05)',
+                      textAlign: 'left'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-                      e.currentTarget.style.background = 'rgba(212, 175, 55, 0.02)';
+                      e.currentTarget.style.borderColor = 'rgba(230, 230, 223, 0.2)';
                       e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.background = 'rgba(230, 230, 223, 0.02)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)';
+                      e.currentTarget.style.borderColor = 'rgba(230, 230, 223, 0.05)';
                       e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.background = 'transparent';
                     }}
                   >
                     <span className="text-serif-italic">"{suggestion}"</span>

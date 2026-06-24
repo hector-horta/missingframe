@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Syne:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&family=Syne:wght@700;800&display=swap');
 @import './components.css';
 
 /* Cascade Layers for Modern CSS Architecture */
@@ -14,16 +14,15 @@
   html, body {
     height: 100%;
     width: 100%;
-    overflow-x: hidden;
+    background-color: var(--bg-primary);
   }
 
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: var(--font-sans);
-    line-height: 1.6;
+    line-height: 1.7;
   }
 
   input, textarea, button, select {
@@ -47,42 +46,39 @@
 
 @layer theme {
   :root {
-    /* Color Palette */
-    --bg-primary: #050508;
-    --bg-secondary: #0c0c10;
-    --bg-tertiary: #14141a;
+    /* Pure deep void A24 palette */
+    --bg-primary: #020203;
+    --bg-secondary: #08080a;
+    --bg-tertiary: #0e0e12;
     
-    --accent-gold: #d4af37;
-    --accent-gold-hover: #e6c55d;
-    --accent-gold-rgb: 212, 175, 55;
+    --accent-blue: #4b6b94; /* Cinematic steel blue highlight */
+    --accent-blue-rgb: 75, 107, 148;
     
+    --accent-gold: #c5a880; /* Muted bronze/gold */
     --accent-red: #da3e52;
-    --accent-red-rgb: 218, 62, 82;
 
-    --text-primary: #f6f6f9;
-    --text-secondary: #a0a0ab;
-    --text-muted: #5e5e66;
+    --text-primary: #e6e6df; /* Warm white/cream typography */
+    --text-secondary: #90908b; /* Muted warm grey */
+    --text-muted: #4e4e4a;
     
     --success: #30a46c;
     --error: #e5484d;
     
     /* Design Tokens */
-    --border-color: rgba(255, 255, 255, 0.05);
-    --border-color-glow: rgba(212, 175, 55, 0.15);
-    --border-color-hover: rgba(255, 255, 255, 0.12);
+    --border-color: rgba(230, 230, 223, 0.05); /* Extremely fine cream outline */
+    --border-color-hover: rgba(230, 230, 223, 0.1);
     
-    --glass-bg: rgba(12, 12, 16, 0.6);
-    --glass-blur: 16px;
+    --glass-bg: rgba(8, 8, 10, 0.4);
+    --glass-blur: 24px;
     
     --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
     --font-display: 'Syne', sans-serif;
     
     --ease-cinema: cubic-bezier(0.16, 1, 0.3, 1);
-    --transition-speed: 0.4s;
+    --transition-speed: 0.5s;
     
-    --shadow-cinematic: 0 12px 40px -10px rgba(0, 0, 0, 0.9), 0 0 1px 1px rgba(255, 255, 255, 0.05);
-    --shadow-glow: 0 0 30px rgba(212, 175, 55, 0.15);
+    --shadow-cinematic: 0 20px 60px -15px rgba(0, 0, 0, 0.95);
   }
 }
 
@@ -90,10 +86,9 @@
   body {
     position: relative;
     background-image: 
-      radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 10% 30%, rgba(218, 62, 82, 0.02) 0%, transparent 40%);
+      radial-gradient(circle at 50% 0%, rgba(75, 107, 148, 0.04) 0%, transparent 60%);
     background-attachment: fixed;
-    font-size: clamp(0.95rem, 0.85rem + 0.3vw, 1.15rem);
+    font-size: clamp(1rem, 0.9rem + 0.3vw, 1.2rem);
     text-wrap: pretty;
   }
 
@@ -107,8 +102,8 @@
     bottom: -50%;
     width: 200%;
     height: 200%;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
-    opacity: 0.45;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
+    opacity: 0.35;
     pointer-events: none;
     z-index: 9999;
     animation: grain-animation 8s steps(10) infinite;
@@ -128,36 +123,41 @@
 
   h1, h2, h3, h4 {
     color: var(--text-primary);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 300; /* Lighter, more elegant weights */
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 
   h1 {
     font-family: var(--font-display);
-    font-size: clamp(2.2rem, 1.8rem + 1.8vw, 4rem);
-    line-height: 1.1;
+    font-size: clamp(2.5rem, 2rem + 2.5vw, 5rem);
+    line-height: 1.05;
+    text-transform: uppercase;
+    font-weight: 800;
   }
 
   h2 {
-    font-size: clamp(1.5rem, 1.3rem + 1vw, 2.5rem);
-    font-family: var(--font-sans);
+    font-size: clamp(1.6rem, 1.4rem + 1.2vw, 2.8rem);
+    font-family: var(--font-serif);
+    font-style: italic;
   }
 
   a {
-    color: var(--accent-gold);
+    color: var(--text-primary);
     text-decoration: none;
-    transition: color var(--transition-speed) var(--ease-cinema);
+    border-bottom: 1px solid rgba(230, 230, 223, 0.2);
+    transition: all var(--transition-speed) var(--ease-cinema);
   }
 
   a:hover {
-    color: var(--accent-gold-hover);
+    color: var(--accent-blue);
+    border-bottom-color: var(--accent-blue);
   }
 
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
 
   ::-webkit-scrollbar-track {
@@ -165,19 +165,18 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--bg-tertiary);
-    border-radius: 3px;
-    border: 1px solid var(--border-color);
+    background: var(--text-muted);
+    border-radius: 2px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-gold-muted);
+    background: var(--accent-blue);
   }
 }
 
 @layer utilities {
-  .text-glow-gold {
-    text-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  .text-glow-blue {
+    text-shadow: 0 0 20px rgba(75, 107, 148, 0.2);
   }
 
   .text-serif-italic {
@@ -198,21 +197,17 @@
 
   /* Fade reveal animations */
   .fade-in-reveal {
-    animation: fade-in-reveal-keyframes 0.8s var(--ease-cinema) forwards;
+    animation: fade-in-reveal-keyframes 1s var(--ease-cinema) forwards;
   }
 
   @keyframes fade-in-reveal-keyframes {
     from {
       opacity: 0;
-      transform: translateY(15px);
+      transform: translateY(20px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-
-  .delay-100 { animation-delay: 0.1s; }
-  .delay-200 { animation-delay: 0.2s; }
-  .delay-300 { animation-delay: 0.3s; }
 }
