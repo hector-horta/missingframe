@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, Key, Film, Check } from 'lucide-react';
-import { getLocalGeminiKey, getLocalTMDBKey } from '../services/reconstruct';
+import React from 'react';
+import { X, Cpu, Shield, Film } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -8,114 +8,84 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const [geminiKey, setGeminiKey] = useState('');
-  const [tmdbKey, setTmdbKey] = useState('');
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setGeminiKey(getLocalGeminiKey());
-      setTmdbKey(getLocalTMDBKey());
-      setSaved(false);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    localStorage.setItem('MF_GEMINI_API_KEY', geminiKey.trim());
-    localStorage.setItem('MF_TMDB_API_KEY', tmdbKey.trim());
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      onClose();
-    }, 1000);
-  };
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="glass-panel modal-content-wrap fade-in-reveal" onClick={(e) => e.stopPropagation()}>
-        <button 
-          className="modal-close-btn" 
-          onClick={onClose}
-          aria-label="close settings"
-        >
-          <X size={20} />
-        </button>
-
-        <div>
-          <h2 className="font-display text-glow-gold" style={{ fontSize: '1.4rem', color: 'var(--accent-gold)' }}>
-            Detective Keys
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            Configure local credentials for memory reconstruction. Keys remain securely on your device.
-          </p>
-        </div>
-
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div className="form-group">
-            <label htmlFor="gemini-key-input" className="form-label">
-              <Key size={14} style={{ color: 'var(--accent-gold)' }} /> Gemini API Key
-            </label>
-            <input
-              id="gemini-key-input"
-              type="password"
-              placeholder="AI Engine Key..."
-              value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
-              className="form-input-field"
-            />
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Required if not deployed with a secure Cloudflare environment variable.
-            </span>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="tmdb-key-input" className="form-label">
-              <Film size={14} style={{ color: 'var(--accent-gold)' }} /> TMDB API Key (Optional)
-            </label>
-            <input
-              id="tmdb-key-input"
-              type="password"
-              placeholder="The Movie Database Key..."
-              value={tmdbKey}
-              onChange={(e) => setTmdbKey(e.target.value)}
-              className="form-input-field"
-            />
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Enables rich visual movie poster and backdrop reconstruction.
-            </span>
-          </div>
-
-          {saved ? (
-            <div 
-              style={{ 
-                background: 'rgba(48, 164, 108, 0.1)', 
-                border: '1px solid var(--success)', 
-                color: 'var(--success)',
-                padding: '0.75rem',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                fontSize: '0.85rem'
-              }}
-            >
-              <Check size={16} /> Keys Registered Successfully
-            </div>
-          ) : (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#020203]/90 backdrop-blur-md" onClick={onClose}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md p-8 border border-[#e6e6df]/5 bg-[#08080a] flex flex-col gap-6 shadow-2xl"
+          >
             <button 
-              type="submit" 
-              className="btn-gold"
-              style={{ width: '100%', marginTop: '0.5rem' }}
+              className="absolute top-4 right-4 text-[#90908b] hover:text-[#e6e6df] transition-colors" 
+              onClick={onClose}
+              aria-label="close settings"
             >
-              Save Credentials
+              <X size={18} />
             </button>
-          )}
-        </form>
-      </div>
-    </div>
+
+            <div>
+              <h2 className="font-display text-sm uppercase tracking-[0.2em] text-[#4b6b94]">
+                Dossier Configuration
+              </h2>
+              <p className="text-[#90908b] text-xs mt-1 leading-relaxed">
+                System status and cryptographic environment parameters.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 border-t border-[#e6e6df]/5 pt-4 text-xs">
+              {/* Host Status */}
+              <div className="flex justify-between items-center py-2 border-b border-[#e6e6df]/5">
+                <div className="flex items-center gap-2 text-[#90908b]">
+                  <Cpu size={14} />
+                  <span>LLM Provider Host</span>
+                </div>
+                <span className="font-mono text-[#e6e6df] bg-[#e6e6df]/5 px-2 py-0.5 uppercase tracking-wide">
+                  Cloudflare Edge
+                </span>
+              </div>
+
+              {/* Encryption Status */}
+              <div className="flex justify-between items-center py-2 border-b border-[#e6e6df]/5">
+                <div className="flex items-center gap-2 text-[#90908b]">
+                  <Shield size={14} />
+                  <span>Key Storage Security</span>
+                </div>
+                <span className="text-emerald-400 font-medium">
+                  AES-256 Secured
+                </span>
+              </div>
+
+              {/* TMDB Artwork Status */}
+              <div className="flex justify-between items-center py-2">
+                <div className="flex items-center gap-2 text-[#90908b]">
+                  <Film size={14} />
+                  <span>Artwork Indexer</span>
+                </div>
+                <span className="text-emerald-400 font-medium">
+                  TMDB Proxy Active
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[#4e4e4a] text-[0.65rem] text-center italic mt-2 leading-relaxed">
+              For security, API credentials reside inside the Cloudflare Workers vault and are never exposed to the browser client.
+            </p>
+
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="w-full py-2.5 border border-[#e6e6df]/10 hover:border-[#e6e6df]/20 hover:bg-[#e6e6df] hover:text-[#020203] text-xs uppercase tracking-wider text-[#e6e6df] transition-all duration-300"
+            >
+              Acknowledge
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };

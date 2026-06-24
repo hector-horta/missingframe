@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { DetectiveConsole } from './components/DetectiveConsole';
 import { ClueChipsView } from './components/ClueChipsView';
 import { ReconstructionScreen } from './components/ReconstructionScreen';
 import { FollowUpModal } from './components/FollowUpModal';
 import { SettingsModal } from './components/SettingsModal';
-import { reconstructMemory, getLocalGeminiKey } from './services/reconstruct';
-import type { Clue, CandidateMovie } from './services/reconstruct';
+import { reconstructMemory } from './services/apiClient';
+import type { Clue, CandidateMovie } from './types';
 
 type Step = 1 | 2 | 4;
 
@@ -20,15 +20,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [noKeyWarning, setNoKeyWarning] = useState(false);
-
-  // Check key configuration on load
-  useEffect(() => {
-    const key = getLocalGeminiKey();
-    if (!key) {
-      setNoKeyWarning(true);
-    }
-  }, []);
 
   // Step 1: Submit raw description to extract initial clues
   const handleExtractClues = async (searchQuery: string) => {
@@ -113,50 +104,42 @@ function App() {
   };
 
   return (
-    <div className="cinema-container">
+    <div className="min-h-screen flex flex-col justify-between p-8 md:p-16 max-w-6xl mx-auto">
       {/* Cinematic Navigation Header (Only displayed after Step 1) */}
       {step !== 1 && (
-        <header className="app-header fade-in-reveal" style={{ justifyContent: 'space-between', borderBottom: '1px solid rgba(230,230,223,0.05)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-          <div onClick={handleReset} className="app-logo" style={{ flexDirection: 'row', gap: '0.5rem' }}>
-            <span className="font-display app-logo-text" style={{ fontSize: '1rem', letterSpacing: '0.15em' }}>
+        <header className="flex justify-between items-center border-b border-[#e6e6df]/5 pb-6 mb-8 animate-fade-in">
+          <button 
+            onClick={handleReset} 
+            className="flex items-center gap-2 cursor-pointer group"
+            aria-label="Back to homepage"
+          >
+            <span className="font-display text-sm tracking-[0.15em] text-[#e6e6df] group-hover:text-[#4b6b94] transition-colors">
               Missing Frame
             </span>
-          </div>
+          </button>
         </header>
       )}
 
       {/* Warnings & Errors */}
-      {noKeyWarning && !getLocalGeminiKey() && (
-        <div className="warning-banner glass-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <AlertTriangle size={18} />
-            <span>Missing Gemini API Key. Provide it in Settings (credentials link below) to enable local reconstruction.</span>
-          </div>
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="btn-gold"
-            style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', border: '1px solid var(--text-primary)' }}
-          >
-            Setup Key
-          </button>
-        </div>
-      )}
-
       {error && (
-        <div className="error-banner glass-panel">
+        <div className="flex items-center gap-3 p-4 border border-rose-500/25 bg-rose-950/10 text-rose-300 text-sm mb-6">
           <AlertTriangle size={18} />
           <span>{error}</span>
         </div>
       )}
 
       {/* Main Workspace Body */}
-      <main className="app-main">
+      <main className="flex-grow flex items-center justify-center w-full min-h-[50vh]">
         {step === 1 ? (
           /* Homepage: Centered Logo + Tagline + Textarea console */
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3.5rem', width: '100%' }}>
-            <div className="app-logo fade-in-reveal">
-              <h1 className="app-logo-text">Missing Frame</h1>
-              <span className="app-tagline">Recover movie memories from fragmented synapses</span>
+          <div className="flex flex-col items-center gap-14 w-full">
+            <div className="text-center">
+              <h1 className="text-5xl md:text-7xl font-extrabold uppercase tracking-tight text-[#e6e6df] mb-2 font-display">
+                Missing Frame
+              </h1>
+              <span className="text-[#90908b] text-sm md:text-base font-light tracking-wider uppercase block">
+                Recover movie memories from fragmented synapses
+              </span>
             </div>
 
             <DetectiveConsole 
@@ -165,19 +148,17 @@ function App() {
               initialQuery={query}
             />
           </div>
+        ) : step === 2 ? (
+          <ClueChipsView 
+            clues={clues} 
+            onReconstruct={handleReconstruct}
+            isLoading={isLoading}
+          />
         ) : (
-          step === 2 ? (
-            <ClueChipsView 
-              clues={clues} 
-              onReconstruct={handleReconstruct}
-              isLoading={isLoading}
-            />
-          ) : (
-            <ReconstructionScreen 
-              candidates={candidates} 
-              onReset={handleReset} 
-            />
-          )
+          <ReconstructionScreen 
+            candidates={candidates} 
+            onReset={handleReset} 
+          />
         )}
       </main>
 
@@ -193,20 +174,18 @@ function App() {
       {/* Settings Modal overlay */}
       <SettingsModal 
         isOpen={isSettingsOpen} 
-        onClose={() => {
-          setIsSettingsOpen(false);
-          setNoKeyWarning(!getLocalGeminiKey());
-        }} 
+        onClose={() => setIsSettingsOpen(false)} 
       />
 
       {/* Cinematic A24 Footer */}
-      <footer className="app-footer">
-        <p>MISSING FRAME © {new Date().getFullYear()} — AN ELITE CINEMATIC RECONSTRUCTION PROJECT.</p>
+      <footer className="flex flex-col items-center mt-16 border-t border-[#e6e6df]/5 pt-6 text-center">
+        <p className="text-[0.65rem] text-[#4e4e4a] tracking-wider uppercase">
+          MISSING FRAME © {new Date().getFullYear()} — AN ELITE CINEMATIC RECONSTRUCTION PROJECT.
+        </p>
         <button 
           onClick={() => setIsSettingsOpen(true)}
-          style={{ fontSize: '0.65rem', color: 'var(--text-muted)', cursor: 'pointer', transition: 'color 0.3s', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.4rem' }}
-          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          className="text-[0.65rem] text-[#4e4e4a] hover:text-[#90908b] uppercase tracking-[0.1em] mt-1.5 transition-colors"
+          aria-label="Open settings credentials modal"
         >
           credentials
         </button>
