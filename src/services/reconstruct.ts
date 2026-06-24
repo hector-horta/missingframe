@@ -1,29 +1,35 @@
 export interface Clue {
-  text: string;
-  status: 'valid' | 'doubtful';
+  label: string;
+  confidence: number;
+  status: 'confirmed' | 'uncertain';
 }
 
 export interface CandidateMovie {
   title: string;
   year: string;
-  director: string;
-  confidence: number;
-  whyItMatches: string;
-  whyItMightNotMatch: string;
-  imdbId: string;
-  tmdbId: string;
+  match: number;
+  why: string;
+  possible_memory_errors: string[];
+  imdbId?: string;
+  tmdbId?: string;
   posterUrl?: string;
   backdropUrl?: string;
 }
 
-export interface ExtractResponse {
-  clues: Clue[];
+export interface ReconstructionResponse {
+  analysis: string;
+  confidence: 'high' | 'medium' | 'low';
+  clarification_needed: boolean;
+  clarification_question: string;
+  extracted_clues: Clue[];
+  movies: CandidateMovie[];
 }
 
-export interface ReconstructionResponse {
-  needsFollowUp: boolean;
+export interface ReconstructionRequest {
+  query?: string;
+  clues?: Clue[];
   followUpQuestion?: string;
-  candidates?: CandidateMovie[];
+  followUpAnswer?: string;
 }
 
 // Check local storage for dynamic API keys (set in settings modal)
@@ -38,7 +44,7 @@ export const getLocalTMDBKey = (): string => {
 /**
  * Searches TMDB for movie poster and backdrop if API key is present
  */
-export async function fetchMovieArt(title: string, year?: string): Promise<{ posterUrl?: string; backdropUrl?: string }> {
+export async function fetchMovieArt(title: string, year?: string): Promise<{ posterUrl?: string; backdropUrl?: string; imdbId?: string; tmdbId?: string }> {
   const tmdbKey = getLocalTMDBKey();
   if (!tmdbKey) return {};
 
@@ -51,9 +57,24 @@ export async function fetchMovieArt(title: string, year?: string): Promise<{ pos
     const data = await response.json();
     const movie = data.results?.[0];
     if (movie) {
+      // Get detailed movie details to obtain IMDb ID
+      let imdbId = undefined;
+      try {
+        const detailUrl = `https://api.themoviedb.org/3/movie/${movie.id}?api_key=${tmdbKey}`;
+        const detailRes = await fetch(detailUrl);
+        if (detailRes.ok) {
+          const detailData = await detailRes.json();
+          imdbId = detailData.imdb_id;
+        }
+      } catch (err) {
+        console.error("Failed to fetch TMDB details for IMDb ID:", err);
+      }
+
       return {
         posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : undefined,
-        backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}` : undefined
+        backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}` : undefined,
+        imdbId,
+        tmdbId: String(movie.id)
       };
     }
   } catch (error) {
@@ -63,96 +84,9 @@ export async function fetchMovieArt(title: string, year?: string): Promise<{ pos
 }
 
 /**
- * Calls `/api/extract` or falls back to client Gemini API to isolate clues.
+ * Core reconstruction query service using the unified JSON schema
  */
-export async function extractClues(query: string): Promise<ExtractResponse> {
-  // 1. Try Cloudflare Pages Function
-  try {
-    const response = await fetch("/api/extract", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-
-    if (response.ok) {
-      return (await response.json()) as ExtractResponse;
-    }
-    console.warn("Cloudflare extract endpoint unavailable, using client fallback...");
-  } catch (err) {
-    console.warn("Failed to reach Cloudflare extract, using client fallback:", err);
-  }
-
-  // 2. Local Fallback direct to Gemini
-  const localKey = getLocalGeminiKey();
-  if (!localKey) {
-    throw new Error(
-      "Missing Gemini API key. Please configure it in your environment or in-app settings."
-    );
-  }
-
-  const systemInstruction = `You are Movie Detective. You are an expert in cinema and human memory.
-Your job is NOT to search for movies. Your job is to extract clues from imperfect memories to assist in later reconstruction.
-Assume every memory description may contain mistakes (confusing actors, mixing scenes, remembering locations incorrectly, remembering visual feelings instead of plot, inventing connections unconsciously). Never trust any single remembered fact.
-
-Your task:
-- Dissect the user's raw movie description into key, isolated, semantic clues.
-- For each semantic clue (e.g. genre, setting, actor, plot point, bionic parts, visual elements), extract it as a brief, clean description text.
-- Evaluate whether this clue seems standard/logical (status: 'valid') or if it is likely a confused, contradictory, or doubtful memory (status: 'doubtful'). A clue is 'doubtful' if it contradicts common film casting (e.g., matching a modern sci-fi detail to an actor who doesn't typically do that genre, or if actor confusion is likely based on visually/culturally similar actors).`;
-
-  const geminiPayload = {
-    contents: [{ role: "user", parts: [{ text: `Extract clues from memory query: "${query}"` }] }],
-    systemInstruction: { parts: [{ text: systemInstruction }] },
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "OBJECT",
-        properties: {
-          clues: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                text: { type: "STRING" },
-                status: { type: "STRING", enum: ["valid", "doubtful"] }
-              },
-              required: ["text", "status"]
-            }
-          }
-        },
-        required: ["clues"]
-      }
-    }
-  };
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiPayload)
-    }
-  );
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini extract error: ${errText}`);
-  }
-
-  const data = await response.json() as any;
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Empty extraction response from Gemini.");
-
-  return JSON.parse(text) as ExtractResponse;
-}
-
-/**
- * Calls `/api/reconstruct` or falls back to client Gemini API to get ranked candidates.
- */
-export async function reconstructFromClues(
-  clues: Clue[],
-  followUpQuestion?: string,
-  followUpAnswer?: string
-): Promise<ReconstructionResponse> {
+export async function reconstructMemory(req: ReconstructionRequest): Promise<ReconstructionResponse> {
   let result: ReconstructionResponse;
 
   // 1. Try Cloudflare Pages Function
@@ -160,16 +94,16 @@ export async function reconstructFromClues(
     const response = await fetch("/api/reconstruct", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clues, followUpQuestion, followUpAnswer })
+      body: JSON.stringify(req)
     });
 
     if (response.ok) {
       result = (await response.json()) as ReconstructionResponse;
-      return await populateCandidatesArt(result);
+      return await populateMoviesArt(result);
     }
-    console.warn("Cloudflare reconstruct endpoint unavailable, using client fallback...");
+    console.warn("Cloudflare endpoint unavailable, trying client fallback...");
   } catch (err) {
-    console.warn("Failed to reach Cloudflare reconstruct, using client fallback:", err);
+    console.warn("Failed to reach Cloudflare api, using client fallback:", err);
   }
 
   // 2. Local Fallback direct to Gemini
@@ -192,26 +126,29 @@ Your method:
 
 Your behavior:
 - Speak like a confident, minimal, intelligent detective.
+- Determine if the provided description/clues are sufficient to identify the movie candidates with high confidence.
 - Only ask one follow-up question when it significantly increases confidence. Never interrogate the user.
-- If confidence is low (meaning multiple matches are possible, or clues are highly ambiguous/contradictory) AND this is the first iteration (meaning no followUpAnswer is provided), set "needsFollowUp" to true and formulate "followUpQuestion" as ONE single, highly intelligent, thematic question to narrow it down (e.g., 'Could the actor have been Laurence Fishburne instead?'). Maximize information gain. Keep it cinematic and concise.
-- If you can resolve the movies immediately, or if the user has answered the follow-up, set "needsFollowUp" to false and return a list of ranked "candidates" (up to 3).
-- For each movie candidate, populate the following fields:
+- If confidence is low (meaning multiple matches are possible, or clues are highly ambiguous/contradictory) AND this is the first iteration (meaning no followUpAnswer is provided), set "clarification_needed" to true and formulate "clarification_question" as ONE single, highly intelligent, thematic question to narrow it down (e.g., 'Could the actor have been Laurence Fishburne instead?'). Maximize information gain. Keep it cinematic and concise.
+- If you can resolve the movies immediately, or if the user has answered the follow-up, set "clarification_needed" to false and return a list of ranked "movies" (up to 3).
+- For each movie candidate, populate:
   - "title": Movie title.
   - "year": Release year.
-  - "director": Director's name.
-  - "confidence": Your confidence percentage (integer).
-  - "whyItMatches": Clear reasons why it matches the user's clues.
-  - "whyItMightNotMatch": Any contradictions, mismatches, or corrected memory facts (e.g., explaining who the actual actor was or what scene was merged).
-  - "imdbId": The actual IMDb ID for this movie (e.g., 'tt2543164').
-  - "tmdbId": The actual TMDb ID for this movie (e.g., '329865').
-- Never look like a chatbot; output only the requested JSON data structure.
-- Never invent fake certainty. Be concise.`;
+  - "match": Confidence match factor between 0.0 and 1.0 (float).
+  - "why": Clear reasoning explaining why it matches and any inferred corrections.
+  - "possible_memory_errors": Array of strings representing details the user likely mixed up (e.g. confused actor, mixed ending).
+- Populate the "extracted_clues" array in all responses. Map each clue item's status to 'confirmed' (corresponds to valid memories) or 'uncertain' (corresponds to suspected/confused memories) with a confidence rating (float between 0.0 and 1.0).
+- Always respond using the requested JSON schema. Never invent fake certainty. Be concise.`;
 
-  let promptContent = `Active clues extracted from memory:\n` + 
-    clues.map((c) => `- ${c.text} (status: ${c.status})`).join('\n');
-    
-  if (followUpQuestion && followUpAnswer) {
-    promptContent += `\n\nDetective Inquiry: "${followUpQuestion}"\nUser Answer: "${followUpAnswer}"\n\nBased on these details, reconstruct the final ranked candidates.`;
+  let promptContent = "";
+  if (req.query) {
+    promptContent = `User memory raw query description: "${req.query}"`;
+  } else if (req.clues) {
+    promptContent = `Active clues extracted from memory:\n` + 
+      req.clues.map((c) => `- ${c.label} (status: ${c.status})`).join('\n');
+  }
+
+  if (req.followUpQuestion && req.followUpAnswer) {
+    promptContent += `\n\nDetective Clarification Question: "${req.followUpQuestion}"\nUser Answer: "${req.followUpAnswer}"\n\nBased on these combined clues, reconstruct the final ranked candidates.`;
   }
 
   const geminiPayload = {
@@ -222,27 +159,41 @@ Your behavior:
       responseSchema: {
         type: "OBJECT",
         properties: {
-          needsFollowUp: { type: "BOOLEAN" },
-          followUpQuestion: { type: "STRING" },
-          candidates: {
+          analysis: { type: "STRING" },
+          confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+          clarification_needed: { type: "BOOLEAN" },
+          clarification_question: { type: "STRING" },
+          extracted_clues: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                label: { type: "STRING" },
+                confidence: { type: "NUMBER" },
+                status: { type: "STRING", enum: ["confirmed", "uncertain"] }
+              },
+              required: ["label", "confidence", "status"]
+            }
+          },
+          movies: {
             type: "ARRAY",
             items: {
               type: "OBJECT",
               properties: {
                 title: { type: "STRING" },
                 year: { type: "STRING" },
-                director: { type: "STRING" },
-                confidence: { type: "INTEGER" },
-                whyItMatches: { type: "STRING" },
-                whyItMightNotMatch: { type: "STRING" },
-                imdbId: { type: "STRING" },
-                tmdbId: { type: "STRING" }
+                match: { type: "NUMBER" },
+                why: { type: "STRING" },
+                possible_memory_errors: {
+                  type: "ARRAY",
+                  items: { type: "STRING" }
+                }
               },
-              required: ["title", "year", "director", "confidence", "whyItMatches", "whyItMightNotMatch", "imdbId", "tmdbId"]
+              required: ["title", "year", "match", "why", "possible_memory_errors"]
             }
           }
         },
-        required: ["needsFollowUp"]
+        required: ["analysis", "confidence", "clarification_needed", "extracted_clues", "movies"]
       }
     }
   };
@@ -266,21 +217,26 @@ Your behavior:
   if (!text) throw new Error("Empty reconstruction response from Gemini.");
 
   result = JSON.parse(text) as ReconstructionResponse;
-  return await populateCandidatesArt(result);
+  return await populateMoviesArt(result);
 }
 
 /**
  * Fetch artwork for all movie candidates
  */
-async function populateCandidatesArt(res: ReconstructionResponse): Promise<ReconstructionResponse> {
-  if (res.candidates && res.candidates.length > 0) {
-    const promises = res.candidates.map(async (candidate) => {
-      const art = await fetchMovieArt(candidate.title, candidate.year);
-      candidate.posterUrl = art.posterUrl;
-      candidate.backdropUrl = art.backdropUrl;
-      return candidate;
+async function populateMoviesArt(res: ReconstructionResponse): Promise<ReconstructionResponse> {
+  if (res.movies && res.movies.length > 0) {
+    const promises = res.movies.map(async (movie) => {
+      const art = await fetchMovieArt(movie.title, movie.year);
+      movie.posterUrl = art.posterUrl;
+      movie.backdropUrl = art.backdropUrl;
+      
+      // If TMDB provided detailed IDs and they aren't returned by Gemini, append them
+      if (art.imdbId) movie.imdbId = art.imdbId;
+      if (art.tmdbId) movie.tmdbId = art.tmdbId;
+      
+      return movie;
     });
-    res.candidates = await Promise.all(promises);
+    res.movies = await Promise.all(promises);
   }
   return res;
 }

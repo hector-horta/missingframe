@@ -176,6 +176,7 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
       <div className="candidates-grid">
         {candidates.map((candidate, idx) => {
           const isSelected = selectedMovie?.title === candidate.title;
+          const matchPercent = Math.round(candidate.match * 100);
           
           return (
             <div 
@@ -196,18 +197,9 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
                 
                 {/* Confidence Floating Tag */}
                 <div className="candidate-confidence-badge">
-                  {candidate.confidence}% Match
+                  {matchPercent}% Match
                 </div>
 
-                {/* Director details */}
-                <div className="candidate-director-info">
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Directed by
-                  </span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                    {candidate.director}
-                  </span>
-                </div>
               </div>
 
               {/* Main Content Details */}
@@ -225,19 +217,25 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
                       ✓ Clue Alignment
                     </span>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {candidate.whyItMatches}
+                      {candidate.why}
                     </p>
                   </div>
 
-                  {/* Why it might not match */}
-                  <div>
-                    <span className="candidate-section-title conflict">
-                      ⚠ Conflict Markers
-                    </span>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {candidate.whyItMightNotMatch}
-                    </p>
-                  </div>
+                  {/* Why it might not match / Possible memory errors */}
+                  {candidate.possible_memory_errors && candidate.possible_memory_errors.length > 0 && (
+                    <div>
+                      <span className="candidate-section-title conflict">
+                        ⚠ Conflict Markers
+                      </span>
+                      <ul style={{ paddingLeft: '1rem', margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {candidate.possible_memory_errors.map((errorText, eIdx) => (
+                          <li key={eIdx} style={{ lineHeight: 1.5, marginBottom: '0.2rem' }}>
+                            {errorText}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 {/* External links & Payoff actions */}
@@ -256,27 +254,31 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
                       <Play size={12} /> Trailer
                     </a>
                     
-                    <a 
-                      href={`https://www.imdb.com/title/${candidate.imdbId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary"
-                      style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
-                      aria-label="IMDb link"
-                    >
-                      IMDb <ExternalLink size={10} />
-                    </a>
+                    {candidate.imdbId && (
+                      <a 
+                        href={`https://www.imdb.com/title/${candidate.imdbId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                        style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
+                        aria-label="IMDb link"
+                      >
+                        IMDb <ExternalLink size={10} />
+                      </a>
+                    )}
 
-                    <a 
-                      href={`https://www.themoviedb.org/movie/${candidate.tmdbId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary"
-                      style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
-                      aria-label="TMDb link"
-                    >
-                      TMDb <ExternalLink size={10} />
-                    </a>
+                    {candidate.tmdbId && (
+                      <a 
+                        href={`https://www.themoviedb.org/movie/${candidate.tmdbId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                        style={{ flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
+                        aria-label="TMDb link"
+                      >
+                        TMDb <ExternalLink size={10} />
+                      </a>
+                    )}
                   </div>
 
                   {/* That's The Movie Confirmation Button */}

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractClues, reconstructFromClues } from '../src/services/reconstruct';
+import { reconstructMemory } from '../src/services/reconstruct';
 
-describe('extractClues service', () => {
+describe('reconstructMemory service with unified JSON schema', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.stubGlobal('fetch', vi.fn());
@@ -16,33 +16,89 @@ describe('extractClues service', () => {
     vi.unstubAllGlobals();
   });
 
-  it('calls Cloudflare api/extract successfully', async () => {
-    const mockExtractResponse = {
-      clues: [
-        { text: 'Sci-Fi', status: 'valid' },
-        { text: 'Forest Whitaker', status: 'doubtful' }
+  it('calls Cloudflare api/reconstruct successfully for Step 1 extraction', async () => {
+    const mockUnifiedResponse = {
+      analysis: "User remembers a sci-fi thriller featuring an actor resembling Forest Whitaker.",
+      confidence: "low",
+      clarification_needed: true,
+      clarification_question: "Do you remember the ending happening in a desert, or in a rainy city?",
+      extracted_clues: [
+        { label: 'Sci-Fi', confidence: 0.95, status: 'confirmed' },
+        { label: 'Forest Whitaker', confidence: 0.75, status: 'uncertain' }
+      ],
+      movies: []
+    };
+
+    (fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockUnifiedResponse
+    });
+
+    const result = await reconstructMemory({ query: 'sci-fi movie with forest whitaker' });
+    
+    expect(fetch).toHaveBeenCalledWith('/api/reconstruct', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ query: 'sci-fi movie with forest whitaker' })
+    }));
+    expect(result.extracted_clues).toHaveLength(2);
+    expect(result.clarification_needed).toBe(true);
+    expect(result.clarification_question).toBe("Do you remember the ending happening in a desert, or in a rainy city?");
+  });
+
+  it('calls Cloudflare api/reconstruct with refined clues and answers to yield movies list', async () => {
+    const mockReconstructResponse = {
+      analysis: "Synapses resolved. The movie is Se7en.",
+      confidence: "high",
+      clarification_needed: false,
+      clarification_question: "",
+      extracted_clues: [
+        { label: 'Thriller', confidence: 0.95, status: 'confirmed' },
+        { label: 'Brad Pitt', confidence: 0.95, status: 'confirmed' }
+      ],
+      movies: [
+        {
+          title: 'Se7en',
+          year: '1995',
+          match: 0.98,
+          why: 'Brad Pitt plays a detective and there is a box at the end.',
+          possible_memory_errors: ['Confused Brad Pitt with Tom Cruise initially']
+        }
       ]
     };
 
     (fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockExtractResponse
+      json: async () => mockReconstructResponse
     });
 
-    const result = await extractClues('sci-fi forest whitaker');
-    
-    expect(fetch).toHaveBeenCalledWith('/api/extract', expect.objectContaining({
+    const result = await reconstructMemory({
+      clues: [
+        { label: 'Thriller', status: 'confirmed', confidence: 0.95 },
+        { label: 'Brad Pitt', status: 'confirmed', confidence: 0.95 }
+      ],
+      followUpQuestion: "Was the ending in a desert?",
+      followUpAnswer: "Yes, it was in a desert."
+    });
+
+    expect(fetch).toHaveBeenCalledWith('/api/reconstruct', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ query: 'sci-fi forest whitaker' })
+      body: JSON.stringify({
+        clues: [
+          { label: 'Thriller', status: 'confirmed', confidence: 0.95 },
+          { label: 'Brad Pitt', status: 'confirmed', confidence: 0.95 }
+        ],
+        followUpQuestion: "Was the ending in a desert?",
+        followUpAnswer: "Yes, it was in a desert."
+      })
     }));
-    expect(result.clues).toHaveLength(2);
-    expect(result.clues[0].text).toBe('Sci-Fi');
-    expect(result.clues[1].status).toBe('doubtful');
+    expect(result.movies).toHaveLength(1);
+    expect(result.movies?.[0].title).toBe('Se7en');
+    expect(result.movies?.[0].possible_memory_errors).toContain('Confused Brad Pitt with Tom Cruise initially');
   });
 
-  it('falls back to direct Gemini call for extraction when Cloudflare fails', async () => {
-    localStorage.setItem('MF_GEMINI_API_KEY', 'my-gemini-key');
-    (fetch as any).mockResolvedValueOnce({ ok: false, status: 404 }); // Cloudflare 404
+  it('falls back to client-side direct Gemini calls using the unified schema when Cloudflare fails', async () => {
+    localStorage.setItem('MF_GEMINI_API_KEY', 'local-gemini-key');
+    (fetch as any).mockResolvedValueOnce({ ok: false, status: 500 }); // Cloudflare fails
 
     const mockGeminiResponse = {
       candidates: [
@@ -51,9 +107,18 @@ describe('extractClues service', () => {
             parts: [
               {
                 text: JSON.stringify({
-                  clues: [
-                    { text: 'Time travel', status: 'valid' }
-                  ]
+                  analysis: "Direct client connection resolved.",
+                  confidence: "high",
+                  clarification_needed: false,
+                  clarification_question: "",
+                  extracted_clues: [{ label: 'Dreams', confidence: 0.9, status: 'confirmed' }],
+                  movies: [{
+                    title: 'Inception',
+                    year: '2010',
+                    match: 0.95,
+                    why: 'Dreams inside dreams.',
+                    possible_memory_errors: []
+                  }]
                 })
               }
             ]
@@ -67,77 +132,9 @@ describe('extractClues service', () => {
       json: async () => mockGeminiResponse
     });
 
-    const result = await extractClues('time travel movie');
-    expect(result.clues[0].text).toBe('Time travel');
-    expect((fetch as any).mock.calls[1][0]).toContain('generativelanguage.googleapis.com');
-  });
-});
-
-describe('reconstructFromClues service', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    vi.stubGlobal('fetch', vi.fn());
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('calls Cloudflare api/reconstruct with clues', async () => {
-    const mockReconstructResponse = {
-      needsFollowUp: false,
-      candidates: [
-        {
-          title: 'Arrival',
-          year: '2016',
-          director: 'Denis Villeneuve',
-          confidence: 95,
-          whyItMatches: 'Contains bionic legs and aliens.',
-          whyItMightNotMatch: 'No Forest Whitaker is in the film.',
-          imdbId: 'tt2543164',
-          tmdbId: '329865'
-        }
-      ]
-    };
-
-    (fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockReconstructResponse
-    });
-
-    const result = await reconstructFromClues([
-      { text: 'Sci-Fi', status: 'valid' },
-      { text: 'Bionic legs', status: 'valid' }
-    ]);
-
-    expect(fetch).toHaveBeenCalledWith('/api/reconstruct', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({
-        clues: [
-          { text: 'Sci-Fi', status: 'valid' },
-          { text: 'Bionic legs', status: 'valid' }
-        ]
-      })
-    }));
-    expect(result.candidates).toHaveLength(1);
-    expect(result.candidates?.[0].title).toBe('Arrival');
-    expect(result.candidates?.[0].imdbId).toBe('tt2543164');
-  });
-
-  it('handles low confidence follow-up responses', async () => {
-    const mockReconstructResponse = {
-      needsFollowUp: true,
-      followUpQuestion: 'Could the actor have been Laurence Fishburne instead?'
-    };
-
-    (fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockReconstructResponse
-    });
-
-    const result = await reconstructFromClues([{ text: 'Matrix-like', status: 'valid' }]);
+    const result = await reconstructMemory({ query: 'spinning top dreams wife' });
     
-    expect(result.needsFollowUp).toBe(true);
-    expect(result.followUpQuestion).toBe('Could the actor have been Laurence Fishburne instead?');
+    expect(result.movies?.[0].title).toBe('Inception');
+    expect((fetch as any).mock.calls[1][0]).toContain('generativelanguage.googleapis.com');
   });
 });

@@ -3,12 +3,22 @@ interface Env {
 }
 
 interface Clue {
-  text: string;
-  status: 'valid' | 'doubtful';
+  label: string;
+  confidence: number;
+  status: 'confirmed' | 'uncertain';
+}
+
+interface Movie {
+  title: string;
+  year: string;
+  match: number;
+  why: string;
+  possible_memory_errors: string[];
 }
 
 interface RequestBody {
-  clues: Clue[];
+  query?: string;
+  clues?: Clue[];
   followUpQuestion?: string;
   followUpAnswer?: string;
 }
@@ -25,11 +35,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    const { clues, followUpQuestion, followUpAnswer } = (await request.json()) as RequestBody;
+    const { query, clues, followUpQuestion, followUpAnswer } = (await request.json()) as RequestBody;
 
-    if (!clues || clues.length === 0) {
+    if (!query && (!clues || clues.length === 0)) {
       return new Response(
-        JSON.stringify({ error: "Missing clues list." }),
+        JSON.stringify({ error: "Missing query description or clues." }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -46,26 +56,29 @@ Your method:
 
 Your behavior:
 - Speak like a confident, minimal, intelligent detective.
+- Determine if the provided description/clues are sufficient to identify the movie candidates with high confidence.
 - Only ask one follow-up question when it significantly increases confidence. Never interrogate the user.
-- If confidence is low (meaning multiple matches are possible, or clues are highly ambiguous/contradictory) AND this is the first iteration (meaning no followUpAnswer is provided), set "needsFollowUp" to true and formulate "followUpQuestion" as ONE single, highly intelligent, thematic question to narrow it down (e.g., 'Could the actor have been Laurence Fishburne instead?'). Maximize information gain. Keep it cinematic and concise.
-- If you can resolve the movies immediately, or if the user has answered the follow-up, set "needsFollowUp" to false and return a list of ranked "candidates" (up to 3).
-- For each movie candidate, populate the following fields:
+- If confidence is low (meaning multiple matches are possible, or clues are highly ambiguous/contradictory) AND this is the first iteration (meaning no followUpAnswer is provided), set "clarification_needed" to true and formulate "clarification_question" as ONE single, highly intelligent, thematic question to narrow it down (e.g., 'Could the actor have been Laurence Fishburne instead?'). Maximize information gain. Keep it cinematic and concise.
+- If you can resolve the movies immediately, or if the user has answered the follow-up, set "clarification_needed" to false and return a list of ranked "movies" (up to 3).
+- For each movie candidate, populate:
   - "title": Movie title.
   - "year": Release year.
-  - "director": Director's name.
-  - "confidence": Your confidence percentage (integer).
-  - "whyItMatches": Clear reasons why it matches the user's clues.
-  - "whyItMightNotMatch": Any contradictions, mismatches, or corrected memory facts (e.g., explaining who the actual actor was or what scene was merged).
-  - "imdbId": The actual IMDb ID for this movie (e.g., 'tt2543164').
-  - "tmdbId": The actual TMDb ID for this movie (e.g., '329865').
-- Never look like a chatbot; output only the requested JSON data structure.
-- Never invent fake certainty. Be concise.`;
+  - "match": Confidence match factor between 0.0 and 1.0 (float).
+  - "why": Clear reasoning explaining why it matches and any inferred corrections.
+  - "possible_memory_errors": Array of strings representing details the user likely mixed up (e.g. confused actor, mixed ending).
+- Populate the "extracted_clues" array in all responses. Map each clue item's status to 'confirmed' (corresponds to valid memories) or 'uncertain' (corresponds to suspected/confused memories) with a confidence rating (float between 0.0 and 1.0).
+- Always respond using the requested JSON schema. Never invent fake certainty. Be concise.`;
 
-    let promptContent = `Active clues extracted from memory:\n` + 
-      clues.map((c) => `- ${c.text} (status: ${c.status})`).join('\n');
-      
+    let promptContent = "";
+    if (query) {
+      promptContent = `User memory raw query description: "${query}"`;
+    } else if (clues) {
+      promptContent = `Active clues extracted from memory:\n` + 
+        clues.map((c) => `- ${c.label} (status: ${c.status})`).join('\n');
+    }
+
     if (followUpQuestion && followUpAnswer) {
-      promptContent += `\n\nDetective Inquiry: "${followUpQuestion}"\nUser Answer: "${followUpAnswer}"\n\nBased on these details, reconstruct the final ranked candidates.`;
+      promptContent += `\n\nDetective Clarification Question: "${followUpQuestion}"\nUser Answer: "${followUpAnswer}"\n\nBased on these combined clues, reconstruct the final ranked candidates.`;
     }
 
     const geminiPayload = {
@@ -83,27 +96,41 @@ Your behavior:
         responseSchema: {
           type: "OBJECT",
           properties: {
-            needsFollowUp: { type: "BOOLEAN" },
-            followUpQuestion: { type: "STRING" },
-            candidates: {
+            analysis: { type: "STRING" },
+            confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+            clarification_needed: { type: "BOOLEAN" },
+            clarification_question: { type: "STRING" },
+            extracted_clues: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  label: { type: "STRING" },
+                  confidence: { type: "NUMBER" },
+                  status: { type: "STRING", enum: ["confirmed", "uncertain"] }
+                },
+                required: ["label", "confidence", "status"]
+              }
+            },
+            movies: {
               type: "ARRAY",
               items: {
                 type: "OBJECT",
                 properties: {
                   title: { type: "STRING" },
                   year: { type: "STRING" },
-                  director: { type: "STRING" },
-                  confidence: { type: "INTEGER" },
-                  whyItMatches: { type: "STRING" },
-                  whyItMightNotMatch: { type: "STRING" },
-                  imdbId: { type: "STRING" },
-                  tmdbId: { type: "STRING" }
+                  match: { type: "NUMBER" },
+                  why: { type: "STRING" },
+                  possible_memory_errors: {
+                    type: "ARRAY",
+                    items: { type: "STRING" }
+                  }
                 },
-                required: ["title", "year", "director", "confidence", "whyItMatches", "whyItMightNotMatch", "imdbId", "tmdbId"]
+                required: ["title", "year", "match", "why", "possible_memory_errors"]
               }
             }
           },
-          required: ["needsFollowUp"]
+          required: ["analysis", "confidence", "clarification_needed", "extracted_clues", "movies"]
         }
       }
     };

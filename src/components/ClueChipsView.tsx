@@ -17,7 +17,7 @@ export const ClueChipsView: React.FC<ClueChipsViewProps> = ({ clues, onReconstru
   const handleAddClue = (e: React.FormEvent) => {
     e.preventDefault();
     if (newClueText.trim()) {
-      setChips([...chips, { text: newClueText.trim(), status: 'valid' }]);
+      setChips([...chips, { label: newClueText.trim(), status: 'confirmed', confidence: 1.0 }]);
       setNewClueText('');
     }
   };
@@ -34,7 +34,7 @@ export const ClueChipsView: React.FC<ClueChipsViewProps> = ({ clues, onReconstru
   const handleSaveEdit = (idx: number) => {
     if (editingText.trim()) {
       const updated = [...chips];
-      updated[idx] = { ...updated[idx], text: editingText.trim() };
+      updated[idx] = { ...updated[idx], label: editingText.trim() };
       setChips(updated);
     } else {
       handleRemoveClue(idx);
@@ -46,7 +46,7 @@ export const ClueChipsView: React.FC<ClueChipsViewProps> = ({ clues, onReconstru
     const updated = [...chips];
     updated[idx] = { 
       ...updated[idx], 
-      status: updated[idx].status === 'valid' ? 'doubtful' : 'valid' 
+      status: updated[idx].status === 'confirmed' ? 'uncertain' : 'confirmed' 
     };
     setChips(updated);
   };
@@ -83,16 +83,16 @@ export const ClueChipsView: React.FC<ClueChipsViewProps> = ({ clues, onReconstru
           chips.map((chip, idx) => (
             <div 
               key={idx}
-              className={`clue-chip-item ${chip.status}`}
+              className={`clue-chip-item ${chip.status === 'confirmed' ? 'valid' : 'doubtful'}`}
             >
               {/* Status Toggle Button */}
               <button 
                 type="button"
                 onClick={() => handleToggleStatus(idx)}
-                title={`Mark as ${chip.status === 'valid' ? 'doubtful' : 'valid'}`}
+                title={`Mark as ${chip.status === 'confirmed' ? 'uncertain' : 'confirmed'}`}
                 style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}
               >
-                {chip.status === 'valid' ? '✅' : '⚠'}
+                {chip.status === 'confirmed' ? '✅' : '⚠'}
               </button>
 
               {/* Editable Text Area */}
@@ -112,11 +112,11 @@ export const ClueChipsView: React.FC<ClueChipsViewProps> = ({ clues, onReconstru
                 />
               ) : (
                 <span 
-                  onClick={() => handleStartEdit(idx, chip.text)}
+                  onClick={() => handleStartEdit(idx, chip.label)}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
                   title="Click to edit"
                 >
-                  {chip.text}
+                  {chip.label}
                 </span>
               )}
 

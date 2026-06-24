@@ -26,8 +26,8 @@ describe('ClueChipsView Component (Step 2)', () => {
   it('renders chips with statuses, allows editing, deleting, and adding chips', () => {
     const handleReconstruct = vi.fn();
     const initialClues = [
-      { text: 'Sci-Fi', status: 'valid' as const },
-      { text: 'Forest Whitaker', status: 'doubtful' as const }
+      { label: 'Sci-Fi', status: 'confirmed' as const, confidence: 0.95 },
+      { label: 'Forest Whitaker', status: 'uncertain' as const, confidence: 0.75 }
     ];
 
     render(
@@ -61,8 +61,8 @@ describe('ClueChipsView Component (Step 2)', () => {
     fireEvent.click(reconstructBtn);
     expect(handleReconstruct).toHaveBeenCalledWith(
       expect.arrayContaining([
-        { text: 'Sci-Fi', status: 'valid' },
-        { text: 'Robot arm', status: 'valid' }
+        { label: 'Sci-Fi', status: 'confirmed', confidence: 0.95 },
+        { label: 'Robot arm', status: 'confirmed', confidence: 1.0 }
       ])
     );
   });
@@ -74,10 +74,9 @@ describe('ReconstructionScreen Component (Step 4)', () => {
       {
         title: 'Arrival',
         year: '2016',
-        director: 'Denis Villeneuve',
-        confidence: 95,
-        whyItMatches: 'Contains detailed bionic legs and aliens.',
-        whyItMightNotMatch: 'No Forest Whitaker is in the film.',
+        match: 0.95,
+        why: 'Contains detailed alien language logs.',
+        possible_memory_errors: ['Confused Forest Whitaker initially'],
         imdbId: 'tt2543164',
         tmdbId: '329865'
       }
@@ -86,8 +85,8 @@ describe('ReconstructionScreen Component (Step 4)', () => {
     render(<ReconstructionScreen candidates={candidates} onReset={vi.fn()} />);
 
     expect(screen.getByText('Arrival (2016)')).toBeInTheDocument();
-    expect(screen.getByText(/Contains detailed bionic legs/i)).toBeInTheDocument();
-    expect(screen.getByText(/No Forest Whitaker is in the/i)).toBeInTheDocument();
+    expect(screen.getByText(/Contains detailed alien/i)).toBeInTheDocument();
+    expect(screen.getByText(/Confused Forest Whitaker/i)).toBeInTheDocument();
 
     // Verify IMDb and TMDb links
     const imdbLink = screen.getByRole('link', { name: /IMDb/i }) as HTMLAnchorElement;

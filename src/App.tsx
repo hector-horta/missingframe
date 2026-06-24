@@ -5,7 +5,7 @@ import { ClueChipsView } from './components/ClueChipsView';
 import { ReconstructionScreen } from './components/ReconstructionScreen';
 import { FollowUpModal } from './components/FollowUpModal';
 import { SettingsModal } from './components/SettingsModal';
-import { extractClues, reconstructFromClues, getLocalGeminiKey } from './services/reconstruct';
+import { reconstructMemory, getLocalGeminiKey } from './services/reconstruct';
 import type { Clue, CandidateMovie } from './services/reconstruct';
 
 type Step = 1 | 2 | 4;
@@ -30,15 +30,15 @@ function App() {
     }
   }, []);
 
-  // Step 1: Submit raw description to extract clues
+  // Step 1: Submit raw description to extract initial clues
   const handleExtractClues = async (searchQuery: string) => {
     setIsLoading(true);
     setError(null);
     setQuery(searchQuery);
 
     try {
-      const response = await extractClues(searchQuery);
-      setClues(response.clues || []);
+      const response = await reconstructMemory({ query: searchQuery });
+      setClues(response.extracted_clues || []);
       setStep(2);
     } catch (err: any) {
       console.error(err);
@@ -55,12 +55,12 @@ function App() {
     setError(null);
 
     try {
-      const response = await reconstructFromClues(refinedClues);
+      const response = await reconstructMemory({ clues: refinedClues });
       
-      if (response.needsFollowUp && response.followUpQuestion) {
-        setFollowUpQuestion(response.followUpQuestion);
-      } else if (response.candidates && response.candidates.length > 0) {
-        setCandidates(response.candidates);
+      if (response.clarification_needed && response.clarification_question) {
+        setFollowUpQuestion(response.clarification_question);
+      } else if (response.movies && response.movies.length > 0) {
+        setCandidates(response.movies);
         setStep(4);
       } else {
         setError("Reconstruction returned empty matching database records.");
@@ -73,20 +73,24 @@ function App() {
     }
   };
 
-  // Step 3: Handle follow-up response
+  // Step 3: Handle follow-up answer submit
   const handleFollowUpSubmit = async (answer: string) => {
     if (!followUpQuestion) return;
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await reconstructFromClues(clues, followUpQuestion, answer);
+      const response = await reconstructMemory({
+        clues,
+        followUpQuestion,
+        followUpAnswer: answer
+      });
       
       // Clear follow up
       setFollowUpQuestion(null);
 
-      if (response.candidates && response.candidates.length > 0) {
-        setCandidates(response.candidates);
+      if (response.movies && response.movies.length > 0) {
+        setCandidates(response.movies);
         setStep(4);
       } else {
         setError("Failed to resolve candidate target after follow-up details.");
