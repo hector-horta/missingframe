@@ -18,15 +18,17 @@ describe('API Client Service', () => {
       clarification_needed: false,
       clarification_question: '',
       extracted_clues: [],
-      movies: [
+      candidates: [
         {
           title: 'Arrival',
           year: '2016',
           match: 0.95,
           why: 'Matches sci-fi criteria',
-          possible_memory_errors: []
+          possible_memory_errors: [],
+          domain: 'movie'
         }
-      ]
+      ],
+      domain: 'movie'
     };
 
     (fetch as any).mockResolvedValueOnce({

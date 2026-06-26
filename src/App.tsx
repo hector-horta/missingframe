@@ -50,8 +50,8 @@ function App() {
       
       if (response.clarification_needed && response.clarification_question) {
         setFollowUpQuestion(response.clarification_question);
-      } else if (response.movies && response.movies.length > 0) {
-        setCandidates(response.movies);
+      } else if (response.candidates && response.candidates.length > 0) {
+        setCandidates(response.candidates);
         setStep(4);
       } else {
         setError("Reconstruction returned empty matching database records.");
@@ -80,8 +80,8 @@ function App() {
       // Clear follow up
       setFollowUpQuestion(null);
 
-      if (response.movies && response.movies.length > 0) {
-        setCandidates(response.movies);
+      if (response.candidates && response.candidates.length > 0) {
+        setCandidates(response.candidates);
         setStep(4);
       } else {
         setError("Failed to resolve candidate target after follow-up details.");

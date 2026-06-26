@@ -1,8 +1,8 @@
-import type { Clue, ReconstructionResponse } from '../../../src/types';
-import type { MovieReconstructorProvider } from './base';
+import type { Clue, ReconstructionResponse, MediaDomain } from '../../../src/types';
+import type { ReconstructionProvider } from './base';
 import { buildPromptText, buildSystemInstruction } from '../promptBuilder';
 
-export class GeminiProvider implements MovieReconstructorProvider {
+export class GeminiProvider implements ReconstructionProvider {
   private apiKey?: string;
   constructor(apiKey?: string) {
     this.apiKey = apiKey;
@@ -12,13 +12,14 @@ export class GeminiProvider implements MovieReconstructorProvider {
     query?: string,
     clues?: Clue[],
     followUpQuestion?: string,
-    followUpAnswer?: string
+    followUpAnswer?: string,
+    domain: MediaDomain = 'movie'
   ): Promise<ReconstructionResponse> {
     if (!this.apiKey) {
       throw new Error("Gemini API key is not configured.");
     }
 
-    const sysInstruction = buildSystemInstruction();
+    const sysInstruction = buildSystemInstruction(domain);
     const promptText = buildPromptText(query, clues, followUpQuestion, followUpAnswer);
 
     const payload = {
@@ -52,7 +53,7 @@ export class GeminiProvider implements MovieReconstructorProvider {
                 required: ["label", "confidence", "status"]
               }
             },
-            movies: {
+            candidates: {
               type: "ARRAY",
               items: {
                 type: "OBJECT",
@@ -70,7 +71,7 @@ export class GeminiProvider implements MovieReconstructorProvider {
               }
             }
           },
-          required: ["analysis", "confidence", "clarification_needed", "extracted_clues", "movies"]
+          required: ["analysis", "confidence", "clarification_needed", "extracted_clues", "candidates"]
         }
       }
     };
@@ -95,6 +96,15 @@ export class GeminiProvider implements MovieReconstructorProvider {
       throw new Error("Gemini returned empty response content.");
     }
 
-    return JSON.parse(text) as ReconstructionResponse;
+    const parsed = JSON.parse(text) as any;
+    // Map candidates to domain
+    if (parsed.candidates) {
+      parsed.candidates = parsed.candidates.map((c: any) => ({
+        ...c,
+        domain
+      }));
+    }
+    parsed.domain = domain;
+    return parsed as ReconstructionResponse;
   }
 }

@@ -1,10 +1,10 @@
 import type { AppConfig } from '../config';
-import type { MovieReconstructorProvider } from './base';
+import type { ReconstructionProvider } from './base';
 import { GeminiProvider } from './gemini';
 import { GroqProvider } from './groq';
 import { OpenRouterProvider } from './openrouter';
 
-export function createProvider(config: AppConfig): MovieReconstructorProvider {
+export function createProvider(config: AppConfig): ReconstructionProvider {
   switch (config.movieProvider) {
     case 'gemini':
       return new GeminiProvider(config.geminiApiKey);

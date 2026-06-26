@@ -1,8 +1,8 @@
-import type { Clue, ReconstructionResponse } from '../../../src/types';
-import type { MovieReconstructorProvider } from './base';
+import type { Clue, ReconstructionResponse, MediaDomain } from '../../../src/types';
+import type { ReconstructionProvider } from './base';
 import { buildPromptText, buildSystemInstruction } from '../promptBuilder';
 
-export class OpenRouterProvider implements MovieReconstructorProvider {
+export class OpenRouterProvider implements ReconstructionProvider {
   private apiKey?: string;
   constructor(apiKey?: string) {
     this.apiKey = apiKey;
@@ -12,13 +12,14 @@ export class OpenRouterProvider implements MovieReconstructorProvider {
     query?: string,
     clues?: Clue[],
     followUpQuestion?: string,
-    followUpAnswer?: string
+    followUpAnswer?: string,
+    domain: MediaDomain = 'movie'
   ): Promise<ReconstructionResponse> {
     if (!this.apiKey) {
       throw new Error("OpenRouter API key is not configured.");
     }
 
-    const sysInstruction = buildSystemInstruction() + 
+    const sysInstruction = buildSystemInstruction(domain) + 
       "\n\nIMPORTANT: You must return a JSON object exactly conforming to this JSON schema:\n" +
       `{
         "analysis": "string",
@@ -28,7 +29,7 @@ export class OpenRouterProvider implements MovieReconstructorProvider {
         "extracted_clues": [
           { "label": "string", "confidence": number, "status": "confirmed" | "uncertain" }
         ],
-        "movies": [
+        "candidates": [
           { "title": "string", "year": "string", "match": number, "why": "string", "possible_memory_errors": ["string"] }
         ]
       }`;
@@ -70,6 +71,14 @@ export class OpenRouterProvider implements MovieReconstructorProvider {
       throw new Error("OpenRouter returned empty response content.");
     }
 
-    return JSON.parse(content) as ReconstructionResponse;
+    const parsed = JSON.parse(content) as any;
+    if (parsed.candidates) {
+      parsed.candidates = parsed.candidates.map((c: any) => ({
+        ...c,
+        domain
+      }));
+    }
+    parsed.domain = domain;
+    return parsed as ReconstructionResponse;
   }
 }

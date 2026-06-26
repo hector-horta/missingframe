@@ -1,10 +1,11 @@
-import type { Clue, ReconstructionResponse } from '../../../src/types';
+import type { Clue, ReconstructionResponse, MediaDomain } from '../../../src/types';
 
-export interface MovieReconstructorProvider {
+export interface ReconstructionProvider {
   reconstruct(
     query?: string,
     clues?: Clue[],
     followUpQuestion?: string,
-    followUpAnswer?: string
+    followUpAnswer?: string,
+    domain?: MediaDomain
   ): Promise<ReconstructionResponse>;
 }

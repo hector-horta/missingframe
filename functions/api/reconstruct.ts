@@ -1,7 +1,7 @@
 import { parseConfig } from './config';
 import { createProvider } from './providers/factory';
-import { populateMoviesArtServer } from './tmdb';
-import { Clue } from '../../src/types';
+import { getResolver } from './resolvers/registry';
+import type { Clue, MediaDomain } from '../../src/types';
 
 interface Env {
   GEMINI_API_KEY?: string;
@@ -16,6 +16,8 @@ interface RequestBody {
   clues?: Clue[];
   followUpQuestion?: string;
   followUpAnswer?: string;
+  domain?: MediaDomain;
+  inputChannel?: string;
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -25,7 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Read body parameters
     const body = (await request.json()) as RequestBody;
-    const { query, clues, followUpQuestion, followUpAnswer } = body;
+    const { query, clues, followUpQuestion, followUpAnswer, domain = 'movie', inputChannel } = body;
 
     if (!query && (!clues || clues.length === 0)) {
       return new Response(
@@ -42,12 +44,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       query,
       clues,
       followUpQuestion,
-      followUpAnswer
+      followUpAnswer,
+      domain
     );
 
-    // Populate movie poster/backdrop details securely on the server
-    if (result.movies && result.movies.length > 0) {
-      result.movies = await populateMoviesArtServer(result.movies, config.tmdbApiKey);
+    // Populate candidate details securely on the server using resolver registry
+    const resolver = getResolver(domain, { tmdb: config.tmdbApiKey });
+    if (resolver && result.candidates && result.candidates.length > 0) {
+      result.candidates = await Promise.all(
+        result.candidates.map((candidate) => resolver.resolve(candidate))
+      );
     }
 
     return new Response(JSON.stringify(result), {

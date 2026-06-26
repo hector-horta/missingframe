@@ -78,7 +78,8 @@ describe('ReconstructionScreen Component (Step 4)', () => {
         why: 'Contains detailed alien language logs.',
         possible_memory_errors: ['Confused Forest Whitaker initially'],
         imdbId: 'tt2543164',
-        tmdbId: '329865'
+        tmdbId: '329865',
+        domain: 'movie' as const
       }
     ];
 
