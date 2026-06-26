@@ -1,0 +1,1 @@
+{"root":["./api/config.ts","./api/promptbuilder.ts","./api/reconstruct.ts","./api/providers/base.ts","./api/providers/factory.ts","./api/providers/gemini.ts","./api/providers/groq.ts","./api/providers/openrouter.ts","./api/resolvers/registry.ts","./api/resolvers/tmdbresolver.ts","./api/resolvers/types.ts"],"version":"6.0.3"}

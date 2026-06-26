@@ -1,3 +1,4 @@
+/// <reference types="@cloudflare/workers-types" />
 import { parseConfig } from './config';
 import { createProvider } from './providers/factory';
 import { getResolver } from './resolvers/registry';
