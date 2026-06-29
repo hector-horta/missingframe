@@ -4,6 +4,7 @@ import { createProvider } from '../functions/api/providers/factory';
 import { GeminiProvider } from '../functions/api/providers/gemini';
 import { GroqProvider } from '../functions/api/providers/groq';
 import { OpenRouterProvider } from '../functions/api/providers/openrouter';
+import { NvidiaReconstructionProvider } from '../functions/api/providers/nvidia';
 
 describe('Provider Factory', () => {
   it('instantiates Gemini provider when configuration is gemini', () => {
@@ -33,6 +34,15 @@ describe('Provider Factory', () => {
     expect(provider).toBeInstanceOf(OpenRouterProvider);
   });
 
+  it('instantiates Nvidia provider when configuration is nvidia', () => {
+    const config = parseConfig({
+      NVIDIA_API_KEY: 'test-nvidia-key',
+      MOVIE_PROVIDER: 'nvidia'
+    });
+    const provider = createProvider(config);
+    expect(provider).toBeInstanceOf(NvidiaReconstructionProvider);
+  });
+
   it('throws an error for unsupported provider configuration', () => {
     const config = parseConfig({
       MOVIE_PROVIDER: 'unsupported'
@@ -40,3 +50,4 @@ describe('Provider Factory', () => {
     expect(() => createProvider(config)).toThrow('Unsupported provider');
   });
 });
+

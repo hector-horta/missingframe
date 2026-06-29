@@ -18,7 +18,7 @@ export class NvidiaProvider implements AIProvider {
   private baseURL: string = 'https://integrate.api.nvidia.com/v1';
 
   constructor(options?: NvidiaProviderOptions) {
-    this.apiKey = options?.apiKey || (import.meta.env?.VITE_NVIDIA_API_KEY as string) || '';
+    this.apiKey = options?.apiKey || ((import.meta as any).env?.VITE_NVIDIA_API_KEY as string) || '';
     this.model = options?.model || 'nvidia/llama-3.1-nemotron-70b-instruct';
   }
 
@@ -71,7 +71,7 @@ export class AIManager implements AIProvider {
   ];
 
   constructor(provider?: NvidiaProvider) {
-    this.activeModel = (import.meta.env?.VITE_ACTIVE_MODEL as string) || 'deepseek-ai/deepseek-v4-flash';
+    this.activeModel = ((import.meta as any).env?.VITE_ACTIVE_MODEL as string) || 'deepseek-ai/deepseek-v4-flash';
     this.provider = provider || new NvidiaProvider({ model: this.activeModel });
   }
 
