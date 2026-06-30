@@ -38,4 +38,27 @@ describe('Prompt Builder tests', () => {
     expect(prompt).toContain('Detective Clarification Question: "Was the actor Laurence Fishburne?"');
     expect(prompt).toContain('User Answer: "No, it was Forest Whitaker"');
   });
+
+  it('builds system instruction containing physical anchors and active elimination guidelines', () => {
+    const sys = buildSystemInstruction();
+    expect(sys).toContain('Physical Anchors');
+    expect(sys).toContain('active elimination');
+    expect(sys).toContain('most discriminating conflict');
+    expect(sys).toContain('budget');
+    expect(sys).toContain('surgical');
+  });
+
+  it('builds system instruction containing Double-Check Protocol guidelines', () => {
+    const sys = buildSystemInstruction();
+    expect(sys).toContain('Double-Check Protocol');
+    expect(sys).toContain('Undeniable Anchors');
+    expect(sys).toContain('0% confidence');
+  });
+
+  it('builds system instruction containing follow-up answer handling rules', () => {
+    const sys = buildSystemInstruction();
+    expect(sys).toContain('do not modify the ranking');
+    expect(sys).toContain('slightly decrease the global confidence');
+    expect(sys).toContain('Never discard candidates solely because');
+  });
 });

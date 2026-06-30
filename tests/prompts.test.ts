@@ -25,4 +25,30 @@ describe('buildRecoveryPrompt', () => {
     expect(prompt).toContain('anclas');
     expect(prompt).toContain('ruido');
   });
+
+  it('contains search strategy guidelines (Physical Anchors, active elimination, discriminating questions)', () => {
+    const prompt = buildRecoveryPrompt('test memory');
+
+    expect(prompt).toContain('Physical Anchors');
+    expect(prompt).toContain('active elimination');
+    expect(prompt).toContain('most discriminating conflict');
+    expect(prompt).toContain('budget');
+    expect(prompt).toContain('surgical');
+  });
+
+  it('contains Double-Check Protocol guidelines (Undeniable Anchors, 0% confidence, lesser-known match)', () => {
+    const prompt = buildRecoveryPrompt('test memory');
+
+    expect(prompt).toContain('Double-Check Protocol');
+    expect(prompt).toContain('Undeniable Anchors');
+    expect(prompt).toContain('0% confidence');
+  });
+
+  it('contains follow-up answer handling rules (do not modify ranking, decrease global confidence, never discard)', () => {
+    const prompt = buildRecoveryPrompt('test memory');
+
+    expect(prompt).toContain('do not modify the ranking');
+    expect(prompt).toContain('slightly decrease the global confidence');
+    expect(prompt).toContain('Never discard candidates solely because');
+  });
 });
