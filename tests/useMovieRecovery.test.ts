@@ -83,4 +83,46 @@ describe('useMovieRecovery Hook', () => {
     expect(result.current.result).toBe(null);
     expect(result.current.error).toBe('Nuestros detectives están ocupados, intenta en un minuto.');
   });
+
+  it('handles wrapped JSON responses successfully in recoverMovie', async () => {
+    const mockResponse = {
+      ruido_vs_anclas: { anclas: [], ruido: [] },
+      analysis: 'ogre saved princess',
+      confidence: 'high',
+      clarification_needed: false,
+      clarification_question: '',
+      extracted_clues: [],
+      candidates: [
+        {
+          title: 'Shrek',
+          year: '2001',
+          match: 0.99,
+          why: 'Perfect match',
+          possible_memory_errors: []
+        }
+      ]
+    };
+
+    const mockRawResponseContent = `
+Sure, here is the JSON representation:
+\`\`\`
+${JSON.stringify(mockResponse)}
+\`\`\`
+Let me know if you need anything else!
+    `;
+
+    const mockAiManager = {
+      complete: vi.fn().mockResolvedValue(mockRawResponseContent)
+    } as unknown as AIManager;
+
+    const { result } = renderHook(() => useMovieRecovery(mockAiManager));
+
+    await act(async () => {
+      await result.current.recoverMovie('a green ogre saves a princess');
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBe(null);
+    expect(result.current.result).toEqual(mockResponse);
+  });
 });

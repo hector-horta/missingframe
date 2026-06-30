@@ -40,7 +40,12 @@ export function useMovieRecovery(aiManager: AIManager = new AIManager()) {
       const prompt = buildRecoveryPrompt(userMemory);
       const rawResponse = await aiManager.complete([{ role: 'user', content: prompt }]);
       
-      const parsed = JSON.parse(rawResponse) as MovieRecoveryResult;
+      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error(`Failed to extract JSON from response: ${rawResponse}`);
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as MovieRecoveryResult;
       setResult(parsed);
       return parsed;
     } catch (err: any) {

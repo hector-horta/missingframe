@@ -44,7 +44,12 @@ export class NvidiaReconstructionProvider implements ReconstructionProvider {
       throw new Error("Nvidia returned empty response content.");
     }
 
-    const parsed = JSON.parse(rawResponse) as any;
+    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error(`Failed to extract JSON from Nvidia response: ${rawResponse}`);
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]) as any;
     if (parsed.candidates) {
       parsed.candidates = parsed.candidates.map((c: any) => ({
         ...c,

@@ -44,7 +44,8 @@ export class NvidiaProvider implements AIProvider {
         model: this.model,
         messages,
         temperature: 0.2,
-        max_tokens: 1024
+        max_tokens: 4096,
+        response_format: { type: "json_object" }
       })
     });
 

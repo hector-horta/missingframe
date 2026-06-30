@@ -21,7 +21,7 @@ Your behavior:
   - "why": Clear reasoning explaining why it matches and any inferred corrections.
   - "possible_memory_errors": Array of strings representing details the user likely mixed up (e.g. confused actor, mixed ending).
 - Populate the "extracted_clues" array in all responses. Map each clue item's status to 'confirmed' (corresponds to valid memories) or 'uncertain' (corresponds to suspected/confused memories) with a confidence rating (float between 0.0 and 1.0).
-- Always respond using the requested JSON schema. Never invent fake certainty. Be concise.`;
+- Always respond using the requested JSON schema. Never invent fake certainty. Be concise. Keep the "why" explanations under 3 sentences and the "analysis" summary under 3 sentences.`;
 
 export function buildRecoveryPrompt(userMemory: string): string {
   return `${MOVIE_DETECTIVE_SYSTEM_PROMPT}

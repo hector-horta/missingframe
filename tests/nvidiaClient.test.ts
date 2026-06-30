@@ -60,7 +60,8 @@ describe('NvidiaProvider', () => {
         model: 'custom-model',
         messages,
         temperature: 0.2,
-        max_tokens: 1024
+        max_tokens: 4096,
+        response_format: { type: 'json_object' }
       })
     });
     expect(result).toBe('Hello, I am Llama!');

@@ -72,4 +72,51 @@ describe('NvidiaReconstructionProvider', () => {
 
     await expect(provider.reconstruct('some query')).rejects.toThrow();
   });
+
+  it('successfully parses JSON when response is wrapped in conversational markdown', async () => {
+    const provider = new NvidiaReconstructionProvider('test-nvidia-key', 'test-model');
+
+    const rawResponseWithText = `
+Here is the requested JSON format:
+\`\`\`json
+{
+  "analysis": "Wrapped JSON test",
+  "confidence": "medium",
+  "clarification_needed": false,
+  "clarification_question": "",
+  "extracted_clues": [],
+  "candidates": [
+    {
+      "title": "Interstellar",
+      "year": "2014",
+      "match": 0.95,
+      "why": "Testing wrap",
+      "possible_memory_errors": []
+    }
+  ]
+}
+\`\`\`
+Hope this helps!
+    `;
+
+    const mockApiResponse = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: rawResponseWithText
+          }
+        }
+      ]
+    };
+
+    (fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockApiResponse
+    });
+
+    const result = await provider.reconstruct('some query', []);
+    expect(result.analysis).toBe('Wrapped JSON test');
+    expect(result.candidates[0].title).toBe('Interstellar');
+  });
 });
