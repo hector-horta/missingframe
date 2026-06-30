@@ -72,6 +72,7 @@ Configure these variables for client-side AI direct calls:
   * `z-ai/glm-5.1`
   * `minimax/minimax-m2.7`
   * `mistralai/mistral-medium-3.5-128b`
+  * `nvidia/llama-3.3-nemotron-super-49b-v1`
 
 ### CLI Commands
 

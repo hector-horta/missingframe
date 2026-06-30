@@ -18,8 +18,11 @@ export class NvidiaProvider implements AIProvider {
   private baseURL: string = 'https://integrate.api.nvidia.com/v1';
 
   constructor(options?: NvidiaProviderOptions) {
-    this.apiKey = options?.apiKey || ((import.meta as any).env?.VITE_NVIDIA_API_KEY as string) || '';
-    this.model = options?.model || 'nvidia/llama-3.1-nemotron-70b-instruct';
+    this.apiKey = options?.apiKey || 
+      ((globalThis as any).process?.env?.VITE_NVIDIA_API_KEY as string) ||
+      ((import.meta as any).env?.VITE_NVIDIA_API_KEY as string) || 
+      '';
+    this.model = options?.model || 'nvidia/llama-3.3-nemotron-super-49b-v1';
   }
 
   setModel(model: string): void {
@@ -67,11 +70,14 @@ export class AIManager implements AIProvider {
     'deepseek-ai/deepseek-v4-flash',
     'z-ai/glm-5.1',
     'minimax/minimax-m2.7',
-    'mistralai/mistral-medium-3.5-128b'
+    'mistralai/mistral-medium-3.5-128b',
+    'nvidia/llama-3.3-nemotron-super-49b-v1'
   ];
 
   constructor(provider?: NvidiaProvider) {
-    this.activeModel = ((import.meta as any).env?.VITE_ACTIVE_MODEL as string) || 'deepseek-ai/deepseek-v4-flash';
+    this.activeModel = ((globalThis as any).process?.env?.VITE_ACTIVE_MODEL as string) ||
+      ((import.meta as any).env?.VITE_ACTIVE_MODEL as string) || 
+      'deepseek-ai/deepseek-v4-flash';
     this.provider = provider || new NvidiaProvider({ model: this.activeModel });
   }
 
