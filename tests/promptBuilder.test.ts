@@ -5,8 +5,8 @@ import type { Clue } from '../src/types';
 describe('Prompt Builder tests', () => {
   it('builds system instruction containing Movie Detective persona', () => {
     const sys = buildSystemInstruction();
-    expect(sys).toContain('You are Movie Detective');
-    expect(sys).toContain('reconstruct imperfect memories');
+    expect(sys).toContain('You are the Detective behind Missing Frame');
+    expect(sys).toContain('reconstruct imperfect human memories');
   });
 
   it('builds raw description prompt for step 1', () => {
@@ -39,26 +39,24 @@ describe('Prompt Builder tests', () => {
     expect(prompt).toContain('User Answer: "No, it was Forest Whitaker"');
   });
 
-  it('builds system instruction containing physical anchors and active elimination guidelines', () => {
+  it('builds system instruction containing Phase 2 Exclusivity and Reliability scoring guidelines', () => {
     const sys = buildSystemInstruction();
-    expect(sys).toContain('Physical Anchors');
-    expect(sys).toContain('active elimination');
-    expect(sys).toContain('most discriminating conflict');
-    expect(sys).toContain('budget');
-    expect(sys).toContain('surgical');
+    expect(sys).toContain('Reliability');
+    expect(sys).toContain('Exclusivity');
+    expect(sys).toContain('Nearly Unique');
+    expect(sys).toContain('Five generic clues');
   });
 
-  it('builds system instruction containing Double-Check Protocol guidelines', () => {
+  it('builds system instruction containing Phase 7 follow-up answer rules', () => {
     const sys = buildSystemInstruction();
-    expect(sys).toContain('Double-Check Protocol');
-    expect(sys).toContain('Undeniable Anchors');
-    expect(sys).toContain('0% confidence');
+    expect(sys).toContain('I DON\'T REMEMBER');
+    expect(sys).toContain('UNKNOWN ≠ FALSE');
+    expect(sys).toContain('Never discard a movie solely because');
   });
 
-  it('builds system instruction containing follow-up answer handling rules', () => {
+  it('builds system instruction containing Exclusive Memory Anchors and Candidate Ranking guidelines', () => {
     const sys = buildSystemInstruction();
-    expect(sys).toContain('do not modify the ranking');
-    expect(sys).toContain('slightly decrease the global confidence');
-    expect(sys).toContain('Never discard candidates solely because');
+    expect(sys).toContain('Exclusive Memory Anchors');
+    expect(sys).toContain('Memory distortion likelihood');
   });
 });

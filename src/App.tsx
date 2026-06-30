@@ -180,7 +180,7 @@ function App() {
       {/* Cinematic A24 Footer */}
       <footer className="flex flex-col items-center mt-16 border-t border-[#e6e6df]/5 pt-6 text-center">
         <p className="text-[0.65rem] text-[#4e4e4a] tracking-wider uppercase">
-          MISSING FRAME © {new Date().getFullYear()} — AN ELITE CINEMATIC RECONSTRUCTION PROJECT.
+          MISSING FRAME © {new Date().getFullYear()} — AN ELITE MEMORIES RECONSTRUCTION PROJECT.
         </p>
         <button 
           onClick={() => setIsSettingsOpen(true)}

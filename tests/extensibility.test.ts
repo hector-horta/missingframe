@@ -9,8 +9,8 @@ describe('Extensibility Architecture', () => {
   describe('Domain System Instructions', () => {
     it('returns Movie Detective instruction for movie domain', () => {
       const instr = buildSystemInstruction('movie');
-      expect(instr).toContain('You are Movie Detective');
-      expect(instr).toContain('reconstruct imperfect memories');
+      expect(instr).toContain('You are the Detective behind Missing Frame');
+      expect(instr).toContain('reconstruct imperfect human memories');
     });
 
     it('returns placeholder instructions for tv, anime, book, game, song domains', () => {

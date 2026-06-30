@@ -9,12 +9,12 @@ describe('buildRecoveryPrompt', () => {
     expect(prompt).toContain(memory);
   });
 
-  it('contains System Prompt details (Movie Detective, human memory)', () => {
+  it('contains System Prompt details (Detective behind Missing Frame, human memory)', () => {
     const prompt = buildRecoveryPrompt('test memory');
 
-    expect(prompt).toContain('Movie Detective');
-    expect(prompt).toContain('human memory');
-    expect(prompt).toContain('imperfect memories');
+    expect(prompt).toContain('Detective behind Missing Frame');
+    expect(prompt).toContain('Human memory');
+    expect(prompt).toContain('imperfect human memories');
   });
 
   it('explicitly requests the JSON containing the analysis of "ruido vs anclas"', () => {
@@ -26,29 +26,34 @@ describe('buildRecoveryPrompt', () => {
     expect(prompt).toContain('ruido');
   });
 
-  it('contains search strategy guidelines (Physical Anchors, active elimination, discriminating questions)', () => {
+  it('contains MASTER SYSTEM PROMPT v3 headers and role', () => {
     const prompt = buildRecoveryPrompt('test memory');
 
-    expect(prompt).toContain('Physical Anchors');
-    expect(prompt).toContain('active elimination');
-    expect(prompt).toContain('most discriminating conflict');
-    expect(prompt).toContain('budget');
-    expect(prompt).toContain('surgical');
+    expect(prompt).toContain('MASTER SYSTEM PROMPT v3');
+    expect(prompt).toContain('reconstruct imperfect human memories');
   });
 
-  it('contains Double-Check Protocol guidelines (Undeniable Anchors, 0% confidence, lesser-known match)', () => {
+  it('contains Phase 2 Exclusivity and Reliability scoring guidelines', () => {
     const prompt = buildRecoveryPrompt('test memory');
 
-    expect(prompt).toContain('Double-Check Protocol');
-    expect(prompt).toContain('Undeniable Anchors');
-    expect(prompt).toContain('0% confidence');
+    expect(prompt).toContain('Reliability');
+    expect(prompt).toContain('Exclusivity');
+    expect(prompt).toContain('Nearly Unique');
+    expect(prompt).toContain('Five generic clues');
   });
 
-  it('contains follow-up answer handling rules (do not modify ranking, decrease global confidence, never discard)', () => {
+  it('contains Phase 7 follow-up answer rules (I DON\'T REMEMBER, UNKNOWN ≠ FALSE)', () => {
     const prompt = buildRecoveryPrompt('test memory');
 
-    expect(prompt).toContain('do not modify the ranking');
-    expect(prompt).toContain('slightly decrease the global confidence');
-    expect(prompt).toContain('Never discard candidates solely because');
+    expect(prompt).toContain('I DON\'T REMEMBER');
+    expect(prompt).toContain('UNKNOWN ≠ FALSE');
+    expect(prompt).toContain('Never discard a movie solely because');
+  });
+
+  it('contains Exclusive Memory Anchors and Candidate Ranking guidelines', () => {
+    const prompt = buildRecoveryPrompt('test memory');
+
+    expect(prompt).toContain('Exclusive Memory Anchors');
+    expect(prompt).toContain('Memory distortion likelihood');
   });
 });
