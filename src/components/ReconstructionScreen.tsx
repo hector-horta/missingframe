@@ -6,6 +6,7 @@ import type { CandidateMovie } from '../types';
 interface ReconstructionScreenProps {
   candidates: CandidateMovie[];
   onReset: () => void;
+  onConfirmCandidate?: (candidate: CandidateMovie) => void;
 }
 
 interface Particle {
@@ -19,7 +20,7 @@ interface Particle {
   decay: number;
 }
 
-export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ candidates, onReset }) => {
+export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ candidates, onReset, onConfirmCandidate }) => {
   const [selectedMovie, setSelectedMovie] = useState<CandidateMovie | null>(null);
   const [showCelebrationOverlay, setShowCelebrationOverlay] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -130,6 +131,9 @@ export const ReconstructionScreen: React.FC<ReconstructionScreenProps> = ({ cand
   const handleThatIsTheMovie = (movie: CandidateMovie) => {
     setSelectedMovie(movie);
     setShowCelebrationOverlay(true);
+    if (onConfirmCandidate) {
+      onConfirmCandidate(movie);
+    }
   };
 
   return (
