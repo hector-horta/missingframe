@@ -25,14 +25,14 @@ describe('Umami Analytics Integration', () => {
       websiteId: 'f2be6a0f-eaf1-42e6-a41d-b79af6759a2b',
     };
 
-    (global.fetch as any).mockResolvedValueOnce({
+    (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => mockConfig,
     });
 
     await initUmami();
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/analytics-config');
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/analytics-config');
     const script = document.querySelector('script');
     expect(script).toBeTruthy();
     expect(script?.getAttribute('src')).toBe(mockConfig.scriptUrl);
@@ -41,7 +41,7 @@ describe('Umami Analytics Integration', () => {
   });
 
   it('initUmami handles failed configuration fetch gracefully', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (globalThis.fetch as any).mockResolvedValueOnce({
       ok: false,
       status: 500,
     });
@@ -50,7 +50,7 @@ describe('Umami Analytics Integration', () => {
 
     await initUmami();
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/analytics-config');
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/analytics-config');
     const script = document.querySelector('script');
     expect(script).toBeNull();
     expect(consoleWarnSpy).toHaveBeenCalled();
