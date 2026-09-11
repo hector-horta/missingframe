@@ -22,7 +22,7 @@ export class NvidiaProvider implements AIProvider {
       ((globalThis as any).process?.env?.VITE_NVIDIA_API_KEY as string) ||
       ((import.meta as any).env?.VITE_NVIDIA_API_KEY as string) || 
       '';
-    this.model = options?.model || 'nvidia/llama-3.3-nemotron-super-49b-v1';
+    this.model = options?.model || 'nvidia/nemotron-3-super-120b-a12b';
   }
 
   setModel(model: string): void {
@@ -72,7 +72,7 @@ export class AIManager implements AIProvider {
     'z-ai/glm-5.1',
     'minimax/minimax-m2.7',
     'mistralai/mistral-medium-3.5-128b',
-    'nvidia/llama-3.3-nemotron-super-49b-v1'
+    'nvidia/nemotron-3-super-120b-a12b'
   ];
 
   constructor(provider?: NvidiaProvider) {
